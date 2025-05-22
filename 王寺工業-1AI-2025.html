@@ -44,6 +44,21 @@
       color: white;
       padding: 20px 0;
       text-align: center;
+      position: relative;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .menu-toggle {
+      display: none;
+      background-color: #ff6b6b;
+      color: white;
+      padding: 10px;
+      font-size: 20px;
+      cursor: pointer;
     }
 
     nav ul {
@@ -100,6 +115,31 @@
     iframe {
       border: none;
     }
+
+    /* モバイル対応 */
+    @media (max-width: 768px) {
+      .menu-toggle {
+        display: block;
+      }
+
+      nav ul {
+        display: none;
+        flex-direction: column;
+        background-color: #ff6b6b;
+        margin-top: 10px;
+        width: 100%;
+      }
+
+      nav ul.show {
+        display: flex;
+      }
+
+      nav ul li {
+        max-width: 100%;
+        border-top: 1px solid #fff;
+        padding: 10px 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -115,8 +155,9 @@
 <div class="main-content" id="main-content">
   <header>
     <div class="logo">1年 I科 A組</div>
+    <div class="menu-toggle" onclick="toggleMenu()">☰ メニュー</div>
     <nav>
-      <ul>
+      <ul id="nav-list">
         <li><a onclick="showPage('home')">ホームページ</a></li>
         <li><a onclick="showPage('schedule')">時間割</a></li>
         <li><a onclick="showPage('calendar')">カレンダー</a></li>
@@ -138,6 +179,7 @@
       時間割、カレンダー、配布プリントなどがわかりやすい状態で掲示しております。<br>
       また、追加していただきたいことがございましたら一政までお伝えいただくよう、よろしくお願いいたします。
     </p>
+    <h1>1AIの保護者の方へ</h1>
   </section>
 
   <footer>
@@ -160,9 +202,9 @@
 
   function getResponsiveWidth() {
     const w = window.innerWidth;
-    if (w > 1000) return 1000;       // PC
-    if (w > 600) return 600;         // タブレット or 横画面スマホ
-    return 300;                      // スマホ縦画面
+    if (w > 1000) return 1000;
+    if (w > 600) return 600;
+    return 300;
   }
 
   function showPage(page) {
@@ -210,7 +252,10 @@
     }
   }
 
-  // 初回ロード時に画面サイズに合わせて初期表示内容の幅を調整（オプション）
+  function toggleMenu() {
+    document.getElementById("nav-list").classList.toggle("show");
+  }
+
   window.addEventListener("resize", () => {
     const pageContent = document.getElementById("page-content");
     if (pageContent.innerHTML.includes("<iframe")) {
