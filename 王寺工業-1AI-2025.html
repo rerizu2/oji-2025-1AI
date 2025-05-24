@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>王寺工業高校 1年A組 情報電子工学科ページ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      font-family: "Arial", sans-serif;
+      font-family: 'Noto Sans JP', sans-serif;
       min-height: 100vh;
     }
 
@@ -97,12 +98,12 @@
     }
 
     .page-content {
-      background-color: rgba(255, 255, 255, 0.9);
+      background-color: rgba(255, 255, 255, 0.95);
       padding: 30px 20px;
       margin: 20px auto;
       max-width: 1000px;
       border-radius: 15px;
-      text-align: center;
+      text-align: left;
     }
 
     footer {
@@ -116,7 +117,6 @@
       border: none;
     }
 
-    /* モバイル対応 */
     @media (max-width: 768px) {
       .menu-toggle {
         display: block;
@@ -158,11 +158,11 @@
     <div class="menu-toggle" onclick="toggleMenu()">☰ メニュー</div>
     <nav>
       <ul id="nav-list">
-        <li><a onclick="showPage('home')">ホームページ</a></li>
+        <li><a onclick="showPage('home')">ホーム</a></li>
         <li><a onclick="showPage('schedule')">時間割</a></li>
         <li><a onclick="showPage('calendar')">カレンダー</a></li>
-        <li><a onclick="showPage('test')">期末テスト範囲</a></li>
-        <li><a onclick="showPage('haihubutu')">配布物プリント</a></li>
+        <li><a onclick="showPage('test')">期末テスト</a></li>
+        <li><a onclick="showPage('haihubutu')">配布プリント</a></li>
       </ul>
     </nav>
   </header>
@@ -172,15 +172,19 @@
   </section>
 
   <section class="page-content" id="page-content">
+    <h2>📢 更新情報</h2>
+    <ul>
+      <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
+      <li>2025/5/20：時間割更新</li>
+    </ul>
     <h1>このページについて</h1>
     <p>
-      こちらのページは1IAの皆様、1AIの生徒の保護者の方のみ入れるページとなっております。<br>
-      なお、生徒の皆様は、GoogleChatで一政が発信した<br>
-      時間割、カレンダー、配布プリントなどがわかりやすい状態で掲示しております。<br>
-      また、追加していただきたいことがございましたら一政までお伝えいただくよう、よろしくお願いいたします。
+      このページは1IAの皆様・保護者専用です。<br>
+      Google Chatで一政が配信した資料（時間割・カレンダー・配布プリントなど）を<br>
+      一目で確認できるようになっています。ご意見は一政まで。
     </p>
-    <h1>1AIホームページのQRコード</h1>
-    <img src="王寺工業-1AI-QRコード.png" alt="1AIページQRコード写真" width="300">
+    <h1>1IAホームページのQRコード</h1>
+    <img src="王寺工業-1AI-QRコード.png" alt="1AIページQRコード" width="300">
   </section>
 
   <footer>
@@ -210,14 +214,20 @@
 
   function showPage(page) {
     const content = document.getElementById("page-content");
+    toggleMenu(); // メニューを閉じる
+
     if (page === 'home') {
       content.innerHTML = `
+        <h2>📢 更新情報</h2>
+        <ul>
+          <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
+          <li>2025/5/20：時間割更新</li>
+        </ul>
         <h1>このページについて</h1>
         <p>
-          こちらのページは1IAの皆様のみ入れるページとなっております。<br>
-          なお、こちらのページは、GoogleChatで一政が発信した<br>
-          時間割、カレンダー、配布プリントなどがわかりやすい状態で掲示しております。<br>
-          また、追加していただきたいことがございましたら一政までお伝えいただくようよろしくお願いいたします。
+          このページは1IAの皆様・保護者専用です。<br>
+          Google Chatで一政が配信した資料（時間割・カレンダー・配布プリントなど）を<br>
+          一目で確認できるようになっています。ご意見は一政まで。
         </p>
       `;
     } else if (page === 'schedule') {
@@ -234,21 +244,13 @@
       `;
     } else if (page === 'test') {
       content.innerHTML = `
-      <h1>期末テスト範囲</h1>
-      <p>現在はございません</p>
+        <h1>期末テスト範囲</h1>
+        <p>現在はございません</p>
       `;
     } else if (page === 'haihubutu') {
       content.innerHTML = `
         <h1>配布プリント</h1>
-        <details open="open">
-          <summary>5月</summary>
-          <details>
-            <summary>5月 Error! 日</summary>
-            　　<ul>
-                  <li><p>無題の写真404</p></li>
-               </ul>
-          </details>
-        </details>
+        <iframe src="https://drive.google.com/embeddedfolderview?id=1UfqzRA8LqoqjK4_eUPLElhQr80cMGJFM#grid" style="width:100%; height:400px;"></iframe>
       `;
     }
   }
