@@ -203,7 +203,6 @@
   <section class="page-content" id="page-content">
     <h2>📢 更新情報</h2>
     <ul>
-      <li>2025/6/29：2学期のカレンダー（予定）を追加</li>
       <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
       <li>2025/5/20：時間割更新</li>
     </ul>
@@ -230,11 +229,75 @@
     if (input === correctPassword) {
       document.getElementById("password-screen").style.display = "none";
       document.getElementById("main-content").style.display = "block";
-      stopQrScanner(); // 正解だったらカメラ停止
     } else {
       alert("パスワードが違います！");
     }
   }
+
+  function getResponsiveWidth() {
+    const w = window.innerWidth;
+    if (w > 1000) return 1000;
+    if (w > 600) return 600;
+    return 300;
+  }
+
+  function showPage(page) {
+    const content = document.getElementById("page-content");
+    toggleMenu(); // メニューを閉じる
+
+    if (page === 'home') {
+      content.innerHTML = `
+        <h2>📢 更新情報</h2>
+        <ul>
+          <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
+          <li>2025/5/20：時間割更新</li>
+        </ul>
+        <h1>このページについて</h1>
+        <p>
+          このページは1IAの皆様・保護者専用です。<br>
+          Google Chatで一政が配信した資料（時間割・カレンダー・配布プリントなど）を<br>
+          一目で確認できるようになっています。ご意見は一政まで。
+        </p>
+        <h1>1IAホームページのQRコード</h1>
+    <img src="王寺工業-1AI-QRコード.png" alt="1AIページQRコード" width="300">
+      `;
+    } else if (page === 'schedule') {
+      const width = getResponsiveWidth();
+      content.innerHTML = `
+        <h1>時間割</h1>
+        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0try5rh29bXvIfaEkguZxKXkh4qunWPHoAbNkZOreHdqWw_nLAQjdhCZ90JxvPlEfPdnSZ39hcfSy/pubhtml?widget=true&amp;headers=false" width="${width}" height="300"></iframe>
+      `;
+    } else if (page === 'calendar') {
+      const width = getResponsiveWidth();
+      content.innerHTML = `
+        <h1>カレンダー</h1>
+        <iframe src="https://calendar.google.com/calendar/embed?src=youmuyizheng%40gmail.com&ctz=Asia%2FTokyo" width="${width}" height="400" frameborder="0" scrolling="no"></iframe>
+      `;
+    } else if (page === 'test') {
+      content.innerHTML = `
+        <h1>期末テスト範囲</h1>
+        <p>現在はございません</p>
+      `;
+    } else if (page === 'haihubutu') {
+      content.innerHTML = `
+        <h1>配布プリント</h1>
+        <iframe src="https://drive.google.com/embeddedfolderview?id=1UfqzRA8LqoqjK4_eUPLElhQr80cMGJFM#grid" style="width:100%; height:400px;"></iframe>
+      `;
+    }
+  }
+
+  function toggleMenu() {
+    document.getElementById("nav-list").classList.toggle("show");
+  }
+
+  window.addEventListener("resize", () => {
+    const pageContent = document.getElementById("page-content");
+    if (pageContent.innerHTML.includes("<iframe")) {
+      const currentPage = pageContent.querySelector("h1")?.textContent || "";
+      if (currentPage === "時間割") showPage("schedule");
+      if (currentPage === "カレンダー") showPage("calendar");
+    }
+  });
 
   // QRコードスキャナーの開始と停止
   let html5QrCode;
@@ -279,10 +342,6 @@
     navList.classList.toggle("show");
   }
 
-  function showPage(page) {
-    const content = document.getElementById("page-content");
-    content.innerHTML = `<h2>${page}ページ</h2><p>このセクションは「${page}」の内容を表示します（未実装）。</p>`;
-  }
 </script>
 </body>
 </html>
