@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>動画を撮る（録画・保存）デモ</title>
+<style>
+  :root { --radius: 12px; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+         margin: 0; padding: 16px; background: #f5f7fb; color: #111; }
+  h1 { font-size: 1.2rem; margin: 0 0 12px; }
+  .card { background: #fff; border-radius: var(--radius); box-shadow: 0 6px 24px rgba(0,0,0,.06);
+          padding: 14px; max-width: 880px; margin: 0 auto; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  label { font-size: .9rem; }
+  select, input[type="checkbox"] { font-size: 1rem; padding: 6px 10px; border-radius: 8px; border: 1px solid #cfd6e4; background: #fff; }
+  button { font-size: 1rem; padding: 10px 14px; border: 0; border-radius: 999px; cursor: pointer; background: #111; color: #fff; }
+  button.secondary { background: #e9ecf3; color: #111; }
+  button.danger { background: #e53935; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .video-wrap { position: relative; border-radius: var(--radius); overflow: hidden; background: #000; }
+  video { width: 100%; height: auto; display: block; background: #000; }
+  .meter { font-variant-numeric: tabular-nums; font-size: .9rem; color: #333; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font-size: .8rem; padding: 6px 10px; background: #eef1f7; border-radius: 999px; }
+  .links a { text-decoration: none; word-break: break-all; }
+  .notice { font-size: .85rem; color: #444; }
+  .err { color: #b00020; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>📹 動画を撮る（ブラウザ録画）</h1>
+
+    <div class="row" style="margin-bottom:8px">
+      <label>カメラ:
+        <select id="cameraFacing">
+          <option value="user">インカメラ（自撮り）</option>
+          <option value="environment">アウトカメラ（背面）</option>
+        </select>
+      </label>
+
+      <label>解像度:
+        <select id="resolution">
+          <option value="hd">HD 1280×720</option>
+          <option value="fhd" selected>FHD 1920×1080</option>
+          <option value="uhd">UHD 3840×2160（対応端末のみ）</option>
+        </select>
+      </label>
+
+      <label>音声を含める <input id="withAudio" type="checkbox" checked></label>
+
+      <label>ファイル形式（自動判定推奨）:
+        <select id="format">
+          <option value="auto" selected>自動（推奨）</option>
+          <option value="webm">WebM（VP8/9/Opus）</option>
+          <option value="mp4">MP4（H.264/AAC）*Safari向け</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="video-wrap">
+      <video id="preview" playsinline autoplay muted></video>
+    </div>
+
+    <div class="row" style="margin:10px 0 6px">
+      <div class="chips">
+        <span class="chip meter">⏱️ <span id="elapsed">00:00</span></span>
+        <span class="chip meter">💾 <span id="filesize">0.0 MB</span></span>
+        <span class="chip meter">🎞️ MIME: <span id="mimeLabel">-</span></span>
+      </div>
+    </div>
+
+    <div class="row" style="margin:4px 0 10px">
+      <button id="btnInit">カメラ開始</button>
+      <button id="btnStart" disabled>録画開始</button>
+      <button id="btnPause" class="secondary" disabled>一時停止</button>
+      <button id="btnResume" class="secondary" disabled>再開</button>
+      <button id="btnStop" class="danger" disabled>停止・保存</button>
+      <button id="btnSwitch" class="secondary" disabled>カメラ切替</button>
+      <button id="btnSnapshot" class="secondary" disabled>📷 スナップ</button>
+    </div>
+
+    <div class="links" id="downloads"></div>
+
+    <p class="notice">
+      ※ https でアクセスしてください（カメラ権限が必要）。iPhone/iPadはSafari、Android/PCはChrome/Edge/Firefoxを推奨。<br>
+      ※ 「自動」形式にしておくとブラウザが対応する最適な形式（WebM / MP4など）を選びます。
+    </p>
+
+    <pre id="error" class="err"></pre>
+  </div>
+
+<script>
+(() => {
+  const el = (id) => document.getElementById(id);
+  const preview = el('preview');
+  const btnInit = el('btnInit');
+  const btnStart = el('btnStart');
+  const btnPause = el('btnPause');
+  const btnResume = el('btnResume');
+  const btnStop = el('btnStop');
+  const btnSwitch = el('btnSwitch');
+  const btnSnapshot = el('btnSnapshot');
+  const downloads = el('downloads');
+  const errorBox = el('error');
+
+  const selFacing = el('cameraFacing');
+  const selRes = el('resolution');
+  const withAudio = el('withAudio');
+  const selFormat = el('format');
+
+  const labElapsed = el('elapsed');
+  const labFilesize = el('filesize');
+  const labMime = el('mimeLabel');
+
+  let currentStream = null;
+  let recorder = null;
+  let chunks = [];
+  let timerId = null;
+  let startedAt = 0;
+  let pausedMs = 0;
+  let lastPauseAt = 0;
+  let pickedMime = '';
+
+  function ms(n){ return ('0'+n).slice(-2) }
+  function fmtTime(msTotal){
+    const s = Math.floor(msTotal/1000);
+    return `${ms(Math.floor(s/60))}:${ms(s%60)}`;
+  }
+  function sumChunksSize(arr){
+    return arr.reduce((a,b)=>a+(b?.size||0),0);
+  }
+  function updateMeters(){
+    const elapsed = (recorder && recorder.state !== 'inactive')
+      ? (Date.now() - startedAt - pausedMs) : 0;
+    labElapsed.textContent = fmtTime(elapsed);
+    labFilesize.textContent = (sumChunksSize(chunks)/1024/1024).toFixed(1) + ' MB';
+  }
+  function startTimer(){
+    stopTimer();
+    timerId = setInterval(updateMeters, 333);
+  }
+  function stopTimer(){
+    if (timerId){ clearInterval(timerId); timerId = null; }
+    updateMeters();
+  }
+
+  function pickConstraints(){
+    let width, height;
+    switch(selRes.value){
+      case 'hd': width=1280; height=720; break;
+      case 'fhd': width=1920; height=1080; break;
+      case 'uhd': width=3840; height=2160; break;
+    }
+    const facingMode = selFacing.value; // 'user' | 'environment'
+    const video = {
+      facingMode: { ideal: facingMode },
+      width: { ideal: width },
+      height: { ideal: height },
+      frameRate: { ideal: 30, max: 60 }
+    };
+    const audio = withAudio.checked ? {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 2,
+      sampleRate: 48000
+    } : false;
+    return { video, audio };
+  }
+
+  async function initCamera(){
+    errorBox.textContent = '';
+    try{
+      stopTracks(currentStream);
+      const stream = await navigator.mediaDevices.getUserMedia(pickConstraints());
+      currentStream = stream;
+      preview.srcObject = stream;
+      preview.muted = true;
+      preview.playsInline = true;
+
+      btnStart.disabled = false;
+      btnSwitch.disabled = false;
+      btnSnapshot.disabled = false;
+    }catch(err){
+      showErr(err);
+    }
+  }
+
+  function stopTracks(stream){
+    if(!stream) return;
+    stream.getTracks().forEach(t => t.stop());
+  }
+
+  async function switchCamera(){
+    // Toggle facing mode and re-init
+    selFacing.value = (selFacing.value === 'user') ? 'environment' : 'user';
+    await initCamera();
+  }
+
+  function pickMimeType(){
+    const pref = selFormat.value;
+    const candidatesAuto = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4;codecs=h264,aac',
+      'video/mp4'
+    ];
+    const candidatesMp4 = [
+      'video/mp4;codecs=h264,aac',
+      'video/mp4'
+    ];
+    const candidatesWebm = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
+    const list = pref === 'auto' ? candidatesAuto
+              : pref === 'mp4' ? candidatesMp4
+              : candidatesWebm;
+
+    for (const m of list){
+      if (MediaRecorder.isTypeSupported?.(m)) return m;
+    }
+    // fallback: let browser choose
+    return '';
+  }
+
+  function startRecording(){
+    if(!currentStream){ return; }
+    chunks = [];
+    pausedMs = 0; lastPauseAt = 0;
+    pickedMime = pickMimeType();
+
+    try {
+      recorder = new MediaRecorder(currentStream, pickedMime ? { mimeType: pickedMime, videoBitsPerSecond: 6_000_000 } : { videoBitsPerSecond: 6_000_000 });
+    } catch (err) {
+      showErr(err);
+      return;
+    }
+
+    labMime.textContent = pickedMime || '(ブラウザ任せ)';
+    recorder.ondataavailable = (e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+    recorder.onstart = ()=>{
+      startedAt = Date.now();
+      startTimer();
+      setBtnState('recording');
+    };
+    recorder.onpause = ()=>{ lastPauseAt = Date.now(); setBtnState('paused'); };
+    recorder.onresume = ()=>{ pausedMs += Date.now() - lastPauseAt; setBtnState('recording'); };
+    recorder.onstop = ()=>{ stopTimer(); saveRecording(); setBtnState('idle-after'); };
+
+    // collect data every second to update size meter
+    recorder.start(1000);
+  }
+
+  function pauseRecording(){ if(recorder && recorder.state==='recording') recorder.pause(); }
+  function resumeRecording(){ if(recorder && recorder.state==='paused') recorder.resume(); }
+  function stopRecording(){ if(recorder && recorder.state!=='inactive') recorder.stop(); }
+
+  function saveRecording(){
+    const mime = pickedMime || (chunks[0]?.type || 'video/webm');
+    const blob = new Blob(chunks, { type: mime });
+    const url = URL.createObjectURL(blob);
+    const ts = new Date();
+    const y = ts.getFullYear();
+    const m = ('0'+(ts.getMonth()+1)).slice(-2);
+    const d = ('0'+ts.getDate()).slice(-2);
+    const hh = ('0'+ts.getHours()).slice(-2);
+    const mm = ('0'+ts.getMinutes()).slice(-2);
+    const ss = ('0'+ts.getSeconds()).slice(-2);
+
+    const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+    const name = `record_${y}${m}${d}_${hh}${mm}${ss}.${ext}`;
+
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    a.textContent = `⬇️ 保存: ${name}（${(blob.size/1024/1024).toFixed(1)} MB）`;
+    a.style.display = 'inline-block';
+    a.style.margin = '8px 0 0';
+    downloads.prepend(a);
+
+    // その場で再生用のvideo要素も表示
+    const v = document.createElement('video');
+    v.src = url;
+    v.controls = true;
+    v.playsInline = true;
+    v.style.width = '100%';
+    v.style.margin = '8px 0 16px';
+    downloads.prepend(v);
+  }
+
+  function takeSnapshot(){
+    if(!currentStream) return;
+    const track = currentStream.getVideoTracks()[0];
+    const settings = track.getSettings();
+    const w = settings.width || 1280;
+    const h = settings.height || 720;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(preview, 0, 0, w, h);
+    canvas.toBlob((blob)=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `snapshot_${Date.now()}.png`;
+      a.textContent = '🖼️ スナップショットを保存';
+      a.style.display = 'inline-block';
+      a.style.margin = '8px 0 0';
+      downloads.prepend(a);
+
+      const img = document.createElement('img');
+      img.src = url; img.style.width='100%'; img.style.margin='8px 0 16px';
+      downloads.prepend(img);
+    }, 'image/png');
+  }
+
+  function setBtnState(mode){
+    // modes: 'ready' (camera on), 'recording', 'paused', 'idle-after'
+    if(mode==='ready'){
+      btnStart.disabled = false;
+      btnPause.disabled = true;
+      btnResume.disabled = true;
+      btnStop.disabled = true;
+      btnSwitch.disabled = false;
+      btnSnapshot.disabled = false;
+    }else if(mode==='recording'){
+      btnStart.disabled = true;
+      btnPause.disabled = false;
+      btnResume.disabled = true;
+      btnStop.disabled = false;
+      btnSwitch.disabled = true; // 録画中は切替不可
+      btnSnapshot.disabled = false;
+    }else if(mode==='paused'){
+      btnStart.disabled = true;
+      btnPause.disabled = true;
+      btnResume.disabled = false;
+      btnStop.disabled = false;
+      btnSwitch.disabled = true;
+      btnSnapshot.disabled = false;
+    }else if(mode==='idle-after'){
+      btnStart.disabled = false;
+      btnPause.disabled = true;
+      btnResume.disabled = true;
+      btnStop.disabled = true;
+      btnSwitch.disabled = false;
+      btnSnapshot.disabled = false;
+    }
+  }
+
+  function showErr(err){
+    console.error(err);
+    errorBox.textContent =
+`エラー: ${err?.name || ''} ${err?.message || err}
+・https で開いているか確認してください
+・ブラウザ設定でカメラ/マイクの権限を許可してください
+・別アプリでカメラを使用中だと取得できません
+・形式は「自動」推奨（端末によりMP4/WebMの対応が異なります）`;
+  }
+
+  // events
+  btnInit.addEventListener('click', initCamera);
+  btnStart.addEventListener('click', startRecording);
+  btnPause.addEventListener('click', pauseRecording);
+  btnResume.addEventListener('click', resumeRecording);
+  btnStop.addEventListener('click', stopRecording);
+  btnSwitch.addEventListener('click', switchCamera);
+  btnSnapshot.addEventListener('click', takeSnapshot);
+
+  // 解像度や形式を変えたら再取得すると反映
+  [selFacing, selRes, withAudio].forEach(elm => {
+    elm.addEventListener('change', ()=>{ if(currentStream) initCamera(); });
+  });
+
+  // 自動的に初期化を試す（権限ダイアログが出ます）
+  // 注: 自動で権限ダイアログを出したくない場合はコメントアウトしてください
+  // initCamera();
+
+  // ページ離脱時にトラック停止
+  window.addEventListener('beforeunload', ()=> stopTracks(currentStream));
+})();
+</script>
+</body>
+</html>
