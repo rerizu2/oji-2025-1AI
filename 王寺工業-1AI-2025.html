@@ -161,6 +161,22 @@
       flex-direction: column;
       align-items: center;
     }
+    
+    a#ibento {
+      background-color: red;
+      color: #fff;
+      padding: 4px 6px;
+      border-radius: 4px;
+      text-decoration: none;
+    }
+    
+    a#taiiku {
+      background-color: red;
+      color: #fff;
+      padding: 4px 6px;
+      border-radius: 4px;
+      text-decoration: none;
+    }
   </style>
   <!-- QRコード読み取りライブラリ -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -190,7 +206,8 @@
         <li><a onclick="showPage('home')">ホーム</a></li>
         <li><a onclick="showPage('schedule')">時間割</a></li>
         <li><a onclick="showPage('calendar')">カレンダー</a></li>
-        <li><a onclick="showPage('test')">期末テスト</a></li>
+        <li><a onclick="showPage('ibento')">イベント</a></li>
+        <li><a onclick="showPage('test')">テスト</a></li>
         <li><a onclick="showPage('haihubutu')">配布プリント</a></li>
       </ul>
     </nav>
@@ -203,6 +220,7 @@
   <section class="page-content" id="page-content">
     <h2>📢 更新情報</h2>
     <ul>
+      <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
       <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
       <li>2025/5/20：時間割更新</li>
     </ul>
@@ -222,17 +240,52 @@
 </div>
 
 <script>
-  const correctPassword = "0h4MO";
+  /* === ハッシュ化済みパスワード（SHA-256 hex） ===
+     元パスワード: "0h4MO"
+     SHA-256: 010f205df33f64fd3d9c046d7a242e2cee1a0a50a9222af275a380bf9e69a8ae
+     （別パスワードに変更する場合は、コメント下の補助関数でハッシュを生成して差し替えてください）
+  */
+  const hashedPassword = "010f205df33f64fd3d9c046d7a242e2cee1a0a50a9222af275a380bf9e69a8ae";
 
-  function checkPassword() {
+  // ヘルパー: テキストをSHA-256でハッシュして16進文字列で返す
+  async function sha256Hex(text) {
+    const enc = new TextEncoder();
+    const data = enc.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  }
+
+  // パスワードチェック（入力 -> ハッシュ -> 比較）
+  async function checkPassword() {
     const input = document.getElementById("password-input").value;
-    if (input === correctPassword) {
-      document.getElementById("password-screen").style.display = "none";
-      document.getElementById("main-content").style.display = "block";
-    } else {
-      alert("パスワードが違います！");
+    if (!input) {
+      alert("パスワードを入力してください。");
+      return;
+    }
+    try {
+      const inputHash = await sha256Hex(input);
+      if (inputHash === hashedPassword) {
+        // 成功
+        stopQrScanner(); // QR読み取りを停止（念のため）
+        document.getElementById("password-screen").style.display = "none";
+        document.getElementById("main-content").style.display = "block";
+      } else {
+        alert("パスワードが違います！");
+      }
+    } catch (e) {
+      console.error("ハッシュ処理に失敗:", e);
+      alert("エラーが発生しました。コンソールを確認してください。");
     }
   }
+
+  // --- 補助（開発用）: ブラウザのコンソールで使って新しいパスワードのハッシュを得られます ---
+  // 例: computeHashForConsole("newpass").then(h=>console.log(h));
+  async function computeHashForConsole(plain) {
+    return await sha256Hex(plain);
+  }
+  // ------------------------------------------
 
   function getResponsiveWidth() {
     const w = window.innerWidth;
@@ -243,12 +296,15 @@
 
   function showPage(page) {
     const content = document.getElementById("page-content");
-    toggleMenu(); // メニューを閉じる
+    // メニュー閉じ
+    const navList = document.getElementById("nav-list");
+    navList.classList.remove("show");
 
     if (page === 'home') {
       content.innerHTML = `
         <h2>📢 更新情報</h2>
         <ul>
+        　<li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
           <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
           <li>2025/5/20：時間割更新</li>
         </ul>
@@ -259,23 +315,36 @@
           一目で確認できるようになっています。ご意見は一政まで。
         </p>
         <h1>1IAホームページのQRコード</h1>
-    <img src="王寺工業-1AI-QRコード.png" alt="1AIページQRコード" width="300">
+        <img src="王寺工業-1AI-QRコード.png" alt="1AIページQRコード" width="300">
       `;
     } else if (page === 'schedule') {
       const width = getResponsiveWidth();
       content.innerHTML = `
         <h1>時間割</h1>
-        <p>新学期のメンテナス中...</p>
+        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0try5rh29bXvIfaEkguZxKXkh4qunWPHoAbNkZOreHdqWw_nLAQjdhCZ90JxvPlEfPdnSZ39hcfSy/pubhtml?widget=true&amp;headers=false" width="${width}" height="300"></iframe>
       `;
     } else if (page === 'calendar') {
       const width = getResponsiveWidth();
       content.innerHTML = `
         <h1>カレンダー</h1>
-        <iframe src="https://calendar.google.com/calendar/embed?src=youmuyizheng%40gmail.com&ctz=Asia%2FTokyo" width="${width}" height="400" frameborder="0" scrolling="no"></iframe>
+        <iframe src="https://calendar.google.com/calendar/embed?src=youmuyizheng%40gmail.com&ctz=Asia%2FTokyo" 
+          width="${width}" height="800" frameborder="0" scrolling="no"></iframe>
+      `;
+    } else if (page === 'ibento') {
+      content.innerHTML = `
+      <h1>近くなってきたイベント</h1>
+      <ul>
+        <li>9月28日：校外学習</li>
+        <li>10月31日：王工祭</li>
+      </ul>
+      <h1>体育大会アンケート</h1>
+      <p><a id="taiiku" href="https://script.google.com/a/macros/e-net.nara.jp/s/AKfycbyIZa93YBWFbEammWd-8_j_kEm2xk8jOirw2GFMEO-AKu0PS--00PcLOtPQOSEYkl7u/exec">体育大会アンケート</p>
+      <h1>文化祭アンケート</h1>
+      <p><a id="ibento" href="https://script.google.com/a/macros/e-net.nara.jp/s/AKfycbw-lGw4oOTdpGOWkG1mtGf07kbrA7Z7YJQbgJmr94cgLOvfX4-kYY9AgBQ_k5hRWQ7usA/exec">文化祭希望アンケート</a></p>
       `;
     } else if (page === 'test') {
       content.innerHTML = `
-        <h1>期末テスト範囲</h1>
+        <h1>テスト範囲</h1>
         <p>現在はございません</p>
       `;
     } else if (page === 'haihubutu') {
@@ -287,7 +356,8 @@
   }
 
   function toggleMenu() {
-    document.getElementById("nav-list").classList.toggle("show");
+    const navList = document.getElementById("nav-list");
+    navList.classList.toggle("show");
   }
 
   window.addEventListener("resize", () => {
@@ -314,11 +384,12 @@
       { facingMode: "environment" },
       { fps: 10, qrbox: 250 },
       (decodedText, decodedResult) => {
+        // QRから得た文字列をパスワード入力欄に入れてハッシュ照合
         document.getElementById("password-input").value = decodedText;
-        checkPassword(); // 自動送信
+        checkPassword(); // 自動送信（ハッシュ比較で判定）
       },
       (errorMessage) => {
-        // console.log(`QRエラー: ${errorMessage}`);
+        // 読み取り中の軽いエラーは無視
       }
     ).catch((err) => {
       alert("カメラの起動に失敗しました：" + err);
@@ -334,14 +405,10 @@
       }).catch(err => {
         console.error("QRスキャナー停止エラー:", err);
       });
+    } else {
+      document.getElementById("qr-reader").style.display = "none";
     }
   }
-
-  function toggleMenu() {
-    const navList = document.getElementById("nav-list");
-    navList.classList.toggle("show");
-  }
-
 </script>
 </body>
 </html>
