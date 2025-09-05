@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>画面録画ツール (HTML/CSS/JS)</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --accent: #4f7cff;
+      --text: #eaf0ff;
+      --muted: #93a1c6;
+      --danger: #ff5d5d;
+      --ok: #47d16c;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; padding: 24px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, #1a245a 0%, var(--bg) 50%);
+      color: var(--text);
+    }
+    .app {
+      max-width: 980px; margin: 0 auto; display: grid; gap: 16px;
+    }
+    header { display:flex; align-items:center; justify-content:space-between; }
+    h1 { font-size: clamp(20px, 2.6vw, 28px); margin: 0; letter-spacing: .3px; }
+    .badge { font-size: 12px; opacity:.8; background: #1e2547; padding:6px 10px; border-radius: 999px; }
+
+    .panel {
+      background: linear-gradient(180deg, #18224a 0%, var(--panel) 100%);
+      border: 1px solid #223069; border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    .controls { display:flex; flex-wrap: wrap; gap: 10px; align-items:center; }
+    .controls .row { display:flex; gap: 10px; flex-wrap: wrap; }
+
+    button, .toggle {
+      appearance: none; border: 1px solid transparent; border-radius: 12px; padding: 10px 14px; font-weight: 600; cursor: pointer;
+      background: #1a2450; color: var(--text); transition: .15s transform, .15s box-shadow, .15s background;
+      box-shadow: 0 6px 16px rgba(0,0,0,.25);
+    }
+    button:hover, .toggle:hover { transform: translateY(-1px); }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+
+    .primary { background: linear-gradient(180deg, #5b86ff 0%, #3d62ff 100%); border-color: #3258ff; }
+    .danger { background: linear-gradient(180deg, #ff7575 0%, #ff4d4d 100%); border-color: #ff3b3b; }
+    .success { background: linear-gradient(180deg, #56d28e 0%, #27c06c 100%); border-color: #20b060; }
+    .ghost { background:#10183a; border-color:#253573; }
+
+    .toggle { display:inline-flex; align-items:center; gap:8px; }
+    .dot { width:10px; height:10px; border-radius:50%; background:#8aa0ff; box-shadow: 0 0 0 0 rgba(79,124,255,.7); }
+    .dot.on { background: var(--ok); animation: pulse 1.8s infinite; }
+    .dot.rec { background: var(--danger); animation: blink 1s infinite; }
+    @keyframes pulse { to { box-shadow: 0 0 0 14px rgba(79,124,255,0); } }
+    @keyframes blink { 50% { opacity:.2; } }
+
+    .timer { font-variant-numeric: tabular-nums; background:#0f1636; border:1px solid #263676; padding:8px 10px; border-radius:10px; min-width:100px; text-align:center; }
+
+    .preview {
+      overflow: hidden; border-radius: 16px; border:1px solid #223069; background: #0e1533; position: relative;
+    }
+    video { width: 100%; height: auto; display:block; aspect-ratio: 16/9; background:#000; }
+
+    .meta { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .meta .item { background:#0f1636; border:1px solid #263676; padding:10px 12px; border-radius:12px; font-size: 14px; color: var(--muted); }
+    .meta .item b { color: var(--text); font-weight: 700; }
+
+    .footer { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap: wrap; }
+    a.download { text-decoration:none; font-weight:700; }
+
+    details summary { cursor: pointer; opacity: .9; }
+    code.kbd { background:#0c1434; border:1px solid #23336f; padding:2px 6px; border-radius:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    @media (max-width: 700px) {
+      .meta { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>画面録画ツール <span class="badge">HTML/CSS/JS・ブラウザのみ</span></h1>
+      <div class="timer" id="timer">00:00:00</div>
+    </header>
+
+    <section class="panel">
+      <div class="controls" aria-label="録画コントロール">
+        <div class="row">
+          <button id="pickScreen" class="ghost">🖥️ 画面を選択</button>
+          <button id="startBtn" class="primary" disabled>● 録画開始</button>
+          <button id="pauseBtn" class="ghost" disabled>⏸ 一時停止</button>
+          <button id="stopBtn" class="danger" disabled>■ 停止と保存</button>
+        </div>
+        <div class="row">
+          <button id="micToggle" class="toggle ghost" aria-pressed="false"><span class="dot" id="micDot"></span>マイク：OFF</button>
+          <button id="systemAudioToggle" class="toggle ghost" aria-pressed="true"><span class="dot on" id="sysDot"></span>タブ/システム音声：ON</button>
+          <label class="toggle ghost" title="録画品質 (kbps)">
+            <input type="range" id="bitrate" min="2000" max="20000" value="8000" step="1000" style="accent-color:var(--accent)"> 品質 <span id="bitrateLabel">8,000</span> kbps
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel preview">
+      <video id="preview" playsinline muted></video>
+    </section>
+
+    <section class="panel meta">
+      <div class="item">状態： <b id="status">待機中</b></div>
+      <div class="item">ファイル名： <b id="filename">未作成</b></div>
+      <div class="item">コーデック： <b id="codec">未決定</b></div>
+      <div class="item">サイズ： <b id="filesize">-</b></div>
+    </section>
+
+    <section class="footer">
+      <div>
+        <a id="download" class="download" href="#" download hidden>⬇️ 録画をダウンロード</a>
+      </div>
+      <details>
+        <summary>ヒント / 注意事項</summary>
+        <ul>
+          <li>Chrome/Edge 最新版推奨。Safari は <code class="kbd">getDisplayMedia</code> と <code class="kbd">MediaRecorder</code> の対応に制限があります。</li>
+          <li>タブ音声を入れるには「タブを共有」し、ブラウザの「このタブの音声を共有」を有効にしてください。</li>
+          <li>マイクとタブ音声は自動でミックスされます（1つの音声トラックに結合）。</li>
+          <li>ショートカット：<code class="kbd">R</code>=開始/停止、<code class="kbd">P</code>=一時停止/再開、<code class="kbd">S</code>=停止。</li>
+        </ul>
+      </details>
+    </section>
+  </div>
+
+  <script>
+    const pickScreenBtn = document.getElementById('pickScreen');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const micToggle = document.getElementById('micToggle');
+    const systemToggle = document.getElementById('systemAudioToggle');
+    const preview = document.getElementById('preview');
+    const statusEl = document.getElementById('status');
+    const filenameEl = document.getElementById('filename');
+    const filesizeEl = document.getElementById('filesize');
+    const codecEl = document.getElementById('codec');
+    const dl = document.getElementById('download');
+    const timerEl = document.getElementById('timer');
+    const bitrate = document.getElementById('bitrate');
+    const bitrateLabel = document.getElementById('bitrateLabel');
+
+    const micDot = document.getElementById('micDot');
+    const sysDot = document.getElementById('sysDot');
+
+    let displayStream = null;
+    let micStream = null;
+    let mixedStream = null;
+    let recorder = null;
+    let chunks = [];
+
+    let startTime = null; let timerId = null;
+
+    function fmt(n){ return n.toString().padStart(2, '0'); }
+    function updateTimer(){
+      const ms = Date.now() - startTime; const s = Math.floor(ms/1000);
+      const h = Math.floor(s/3600); const m = Math.floor((s%3600)/60); const ss = s%60;
+      timerEl.textContent = `${fmt(h)}:${fmt(m)}:${fmt(ss)}`;
+    }
+
+    bitrate.addEventListener('input', () => {
+      bitrateLabel.textContent = Number(bitrate.value).toLocaleString();
+    });
+
+    micToggle.addEventListener('click', async () => {
+      const on = micToggle.getAttribute('aria-pressed') === 'true';
+      micToggle.setAttribute('aria-pressed', String(!on));
+      micToggle.textContent = '';
+      micToggle.insertAdjacentHTML('beforeend', `<span class="dot ${!on ? 'on' : ''}" id="micDotX"></span>マイク：${!on ? 'ON' : 'OFF'}`);
+      // replace visual dot
+      micDot.classList.toggle('on', !on);
+    });
+
+    systemToggle.addEventListener('click', () => {
+      const on = systemToggle.getAttribute('aria-pressed') === 'true';
+      systemToggle.setAttribute('aria-pressed', String(!on));
+      sysDot.classList.toggle('on', !on);
+    });
+
+    pickScreenBtn.addEventListener('click', async () => {
+      try {
+        // Build constraints dynamically for system audio toggle
+        const wantSystemAudio = systemToggle.getAttribute('aria-pressed') === 'true';
+        const displayConstraints = {
+          video: { frameRate: 30 },
+          audio: wantSystemAudio ? { echoCancellation: false, noiseSuppression: false } : false
+        };
+        displayStream = await navigator.mediaDevices.getDisplayMedia(displayConstraints);
+        preview.srcObject = displayStream;
+        await preview.play();
+        startBtn.disabled = false;
+        statusEl.textContent = '共有中（録画待機）';
+      } catch (err) {
+        console.error(err);
+        alert('画面の共有がキャンセルされました、または許可されませんでした。');
+      }
+    });
+
+    async function ensureMic(){
+      const wantMic = micToggle.getAttribute('aria-pressed') === 'true';
+      if (!wantMic) return null;
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        return micStream;
+      } catch (e){
+        console.warn('マイク取得に失敗:', e);
+        alert('マイクの取得に失敗しました。ブラウザの権限設定をご確認ください。');
+        return null;
+      }
+    }
+
+    function mixStreams(displayStream, micStream){
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const dest = ctx.createMediaStreamDestination();
+
+      const gains = [];
+      const addTracks = (stream, gainValue=1.0) => {
+        if (!stream) return;
+        stream.getAudioTracks().forEach(t => {
+          const src = ctx.createMediaStreamSource(new MediaStream([t]));
+          const g = ctx.createGain(); g.gain.value = gainValue; src.connect(g).connect(dest);
+          gains.push(g);
+        });
+      };
+      // System/Tab audio (if any)
+      addTracks(displayStream, 1.0);
+      // Mic audio (if any)
+      addTracks(micStream, 1.0);
+
+      const output = new MediaStream();
+      // Prefer the first video track from display
+      const [vTrack] = displayStream.getVideoTracks();
+      if (vTrack) output.addTrack(vTrack);
+      // Single mixed audio track
+      dest.stream.getAudioTracks().forEach(t => output.addTrack(t));
+      return output;
+    }
+
+    function pickSupportedMime(){
+      const candidates = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'video/mp4;codecs=h264,aac' // very limited in browsers for MediaRecorder
+      ];
+      return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
+    }
+
+    startBtn.addEventListener('click', async () => {
+      if (!displayStream) { alert('まず「画面を選択」を押してください。'); return; }
+      const ms = await ensureMic();
+      mixedStream = mixStreams(displayStream, ms);
+
+      const mimeType = pickSupportedMime();
+      codecEl.textContent = mimeType || '自動選択';
+
+      chunks = [];
+      try {
+        recorder = new MediaRecorder(mixedStream, {
+          mimeType: mimeType || undefined,
+          bitsPerSecond: Number(bitrate.value) * 1000,
+        });
+      } catch (e){
+        console.error('MediaRecorder 作成に失敗:', e);
+        alert('このブラウザでは録画がサポートされていない可能性があります。Chrome/Edge をお試しください。');
+        return;
+      }
+
+      recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = handleStop;
+
+      recorder.start();
+      statusEl.textContent = '録画中';
+      pickScreenBtn.disabled = true;
+      startBtn.disabled = true; pauseBtn.disabled = false; stopBtn.disabled = false;
+      // Visual rec dot
+      document.title = '● REC - 画面録画ツール';
+      timerEl.classList.add('rec');
+
+      startTime = Date.now();
+      timerId = setInterval(updateTimer, 500);
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      if (!recorder) return;
+      if (recorder.state === 'recording') {
+        recorder.pause();
+        pauseBtn.textContent = '▶︎ 再開';
+        statusEl.textContent = '一時停止中';
+      } else if (recorder.state === 'paused') {
+        recorder.resume();
+        pauseBtn.textContent = '⏸ 一時停止';
+        statusEl.textContent = '録画中';
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      if (!recorder) return;
+      recorder.stop();
+    });
+
+    async function handleStop(){
+      clearInterval(timerId); timerEl.textContent = '00:00:00';
+      statusEl.textContent = '保存準備中…';
+
+      // Stop all tracks to release the share prompt banner
+      [displayStream, micStream, mixedStream].forEach(s => s && s.getTracks().forEach(t => t.stop()));
+
+      const blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
+      const url = URL.createObjectURL(blob);
+
+      const ts = new Date();
+      const fname = `screenrec_${ts.getFullYear()}-${fmt(ts.getMonth()+1)}-${fmt(ts.getDate())}_${fmt(ts.getHours())}${fmt(ts.getMinutes())}${fmt(ts.getSeconds())}.webm`;
+      filenameEl.textContent = fname;
+      filesizeEl.textContent = `${(blob.size/1024/1024).toFixed(2)} MB`;
+
+      dl.href = url; dl.download = fname; dl.hidden = false;
+      statusEl.textContent = '完了（ダウンロード可能）';
+
+      pickScreenBtn.disabled = false; startBtn.disabled = true; pauseBtn.disabled = true; stopBtn.disabled = true;
+      pauseBtn.textContent = '⏸ 一時停止';
+      document.title = '画面録画ツール (完了)';
+      timerEl.classList.remove('rec');
+    }
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'r') { if (!startBtn.disabled) startBtn.click(); else if (!stopBtn.disabled) stopBtn.click(); }
+      if (k === 'p' && !pauseBtn.disabled) pauseBtn.click();
+      if (k === 's' && !stopBtn.disabled) stopBtn.click();
+    });
+
+    // Warn before leaving if recording
+    window.addEventListener('beforeunload', (e) => {
+      if (recorder && (recorder.state === 'recording' || recorder.state === 'paused')) {
+        e.preventDefault(); e.returnValue = '';
+      }
+    });
+  </script>
+</body>
+</html>
