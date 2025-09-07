@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>王寺工業高校 1年A組 情報電子工学科専用ポータル</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>王寺工業高校 1年A組 情報電子工学科ページ</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,10 +29,24 @@
     .menu-toggle { display: none; font-size: 22px; cursor: pointer; }
 
     /* ヒーロー */
-    .hero { background: linear-gradient(to right, #005bac, #0073e6); color: white; text-align: center; padding: 80px 20px; border-radius: 0 0 30px 30px; }
-    .hero img { max-width: 180px; margin-bottom: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-    .hero h1 { font-size: 36px; margin-bottom: 10px; }
-    .hero p { font-size: 18px; }
+    .hero { 
+      background: url('https://rerizu2.github.io/oji-2025-1AI/1IA%E9%9B%86%E5%90%88%E5%86%99%E7%9C%9F.png') no-repeat center center / cover; /* 背景画像パス */
+      color: white; text-align: center; padding: 120px 20px; position: relative;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.4); /* 文字を見やすくするオーバーレイ */
+      z-index: 0;
+    }
+    .hero h1, .hero p {
+      position: relative;
+      z-index: 1;
+      font-weight: bold;
+    }
+    .hero h1 { font-size: 48px; margin-bottom: 15px; }
+    .hero p { font-size: 22px; }
 
     /* コンテンツ */
     .page-content { max-width: 1100px; margin: 30px auto; padding: 20px; }
@@ -56,6 +70,7 @@
       .menu-toggle { display: block; }
     }
   </style>
+  <!-- QRコード読み取りライブラリ -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
@@ -66,6 +81,7 @@
   <input type="password" id="password-input" placeholder="パスワード">
   <button onclick="checkPassword()">送信</button>
 
+  <!-- QRコード読み取り -->
   <div id="qr-controls">
     <button onclick="startQrScanner()">📷 QRで読み取る</button>
     <div id="qr-reader"></div>
@@ -73,10 +89,10 @@
 </div>
 
 <!-- 本編画面 -->
-<div class="main-content" id="main-content">
+<div class="main-content" id="main-content" style="display:none;">
   <header>
     <div class="logo">1年 I科 A組</div>
-    <div class="menu-toggle" onclick="toggleMenu()">☰ メニュー</div>
+    <div class="menu-toggle" onclick="toggleMenu()">☰</div>
     <nav>
       <ul id="nav-list">
         <li><a onclick="showPage('home')">ホーム</a></li>
@@ -90,13 +106,27 @@
   </header>
 
   <section class="hero">
-    <img src="1IA集合写真.png" alt="1IAロゴ">
     <h1>ようこそ 1IA ページへ</h1>
     <p>情報電子工学科 専用ポータル</p>
   </section>
 
   <section class="page-content" id="page-content">
-    <!-- 初期表示はホームページ内容 -->
+    <div class="card">
+      <h2>📢 更新情報</h2>
+      <ul>
+        <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
+        <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
+        <li>2025/5/20：時間割更新</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h1>このページについて</h1>
+      <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料（時間割・カレンダー・配布プリントなど）を一目で確認できます。ご意見は一政まで。</p>
+    </div>
+    <div class="card">
+      <h1>1IAホームページのQRコード</h1>
+      <img src="王寺工業-1AI-QRコード.png" alt="1AIページQRコード" width="300">
+    </div>
   </section>
 
   <footer>
@@ -105,138 +135,61 @@
 </div>
 
 <script>
-const hashedPassword = "010f205df33f64fd3d9c046d7a242e2cee1a0a50a9222af275a380bf9e69a8ae";
+  const hashedPassword = "010f205df33f64fd3d9c046d7a242e2cee1a0a50a9222af275a380bf9e69a8ae";
 
-async function sha256Hex(text) {
-  const enc = new TextEncoder();
-  const data = enc.encode(text);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-async function checkPassword() {
-  const input = document.getElementById("password-input").value;
-  if (!input) { alert("パスワードを入力してください。"); return; }
-  const inputHash = await sha256Hex(input);
-  if (inputHash === hashedPassword) {
-    stopQrScanner();
-    document.getElementById("password-screen").style.display = "none";
-    document.getElementById("main-content").style.display = "block";
-    showPage('home');
-  } else { alert("パスワードが違います！"); }
-}
-
-function getResponsiveWidth() {
-  const w = window.innerWidth;
-  if (w > 1000) return 1000;
-  if (w > 600) return 600;
-  return 300;
-}
-
-function toggleMenu() {
-  document.getElementById("nav-list").classList.toggle("show");
-}
-
-window.addEventListener("resize", () => {
-  const pageContent = document.getElementById("page-content");
-  if (pageContent.innerHTML.includes("<iframe")) {
-    const currentPage = pageContent.querySelector("h1")?.textContent || "";
-    if (currentPage === "時間割") showPage("schedule");
-    if (currentPage === "カレンダー") showPage("calendar");
+  async function sha256Hex(text) {
+    const enc = new TextEncoder();
+    const data = enc.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
   }
-});
 
-let html5QrCode;
-function startQrScanner() {
-  const qrReader = document.getElementById("qr-reader");
-  qrReader.style.display = "block";
-  if (html5QrCode) return;
-  html5QrCode = new Html5Qrcode("qr-reader");
-  html5QrCode.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    (decodedText) => { document.getElementById("password-input").value = decodedText; checkPassword(); },
-    (errorMessage) => {}
-  ).catch(err => { alert("カメラの起動に失敗しました：" + err); });
-}
-
-function stopQrScanner() {
-  if (html5QrCode) {
-    html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; document.getElementById("qr-reader").style.display = "none"; }).catch(err => console.error(err));
-  } else { document.getElementById("qr-reader").style.display = "none"; }
-}
-
-function showPage(page) {
-  const content = document.getElementById("page-content");
-  document.getElementById("nav-list").classList.remove("show");
-
-  const width = getResponsiveWidth();
-
-  if (page === 'home') {
-    content.innerHTML = `
-      <div class="card">
-        <h2>📢 更新情報</h2>
-        <ul>
-          <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
-          <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
-          <li>2025/5/20：時間割更新</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h1>このページについて</h1>
-        <p>このページは1IAの皆様・保護者専用です。<br>Google Chatで配信された資料（時間割・カレンダー・配布プリントなど）を一目で確認できます。</p>
-      </div>
-      <div class="card">
-        <h1>1IAホームページのQRコード</h1>
-        <img src="王寺工業-1AI-QRコード.png" alt="1AIページQRコード" width="300">
-      </div>
-    `;
-  } else if (page === 'schedule') {
-    content.innerHTML = `
-      <div class="card">
-        <h1>時間割</h1>
-        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0try5rh29bXvIfaEkguZxKXkh4qunWPHoAbNkZOreHdqWw_nLAQjdhCZ90JxvPlEfPdnSZ39hcfSy/pubhtml?widget=true&amp;headers=false" width="${width}" height="300"></iframe>
-      </div>
-    `;
-  } else if (page === 'calendar') {
-    content.innerHTML = `
-      <div class="card">
-        <h1>カレンダー</h1>
-        <iframe src="https://calendar.google.com/calendar/embed?src=youmuyizheng%40gmail.com&ctz=Asia%2FTokyo" width="${width}" height="800" frameborder="0" scrolling="no"></iframe>
-      </div>
-    `;
-  } else if (page === 'ibento') {
-    content.innerHTML = `
-      <div class="card">
-        <h1>近くなってきたイベント</h1>
-        <ul>
-          <li>9月28日：校外学習</li>
-          <li>10月31日：王工祭</li>
-        </ul>
-        <h1>体育大会パフォーマンスアンケート</h1>
-        <p id="mamonaku">まもなく終了です！</p>
-        <p><a id="taiiku" href="https://script.google.com/a/macros/e-net.nara.jp/s/AKfycbzXRQsl-pdRVDk66C3D7OOYBi55yS58rnp5Ui7L-n-RkBFLs3t5nf_1RwQ83jZN_RvJdg/exec">体育大会パフォーマンスアンケート</a></p>
-        <h1>体育大会パフォーマンス最終アンケート</h1>
-        <p>9月8日 0時00分に公開します。</p>
-        <h1>文化祭アンケート</h1>
-        <p><a id="ibento" href="https://script.google.com/a/macros/e-net.nara.jp/s/AKfycbw-lGw4oOTdpGOWkG1mtGf07kbrA7Z7YJQbgJmr94cgLOvfX4-kYY9AgBQ_k5hRWQ7usA/exec">文化祭希望アンケート</a></p>
-        <p>※学校のアカウントでアンケートをしてください</p>
-        <h1>体育大会種目＆メンバー現段階！</h1>
-        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTU76u1VutvTIpe6bsjP9ukaqVGf5aiJwWdHvk3pklRjlZM-yImY5Lk9xynxvBHCbpN9ygwi-LIQxkU/pubhtml?gid=280170340&amp;single=true" style="width:100%; height:80vh;"></iframe>
-        <h1>体育大会パフォーマンスアンケート人数＆パフォーマンス結果</h1>
-        <iframe src="https://docs.google.com/document/d/e/2PACX-1vSr7iWdUJZbCwW65yeT_wDvv8emc_3EVqGcfZ6zn4XGJ2swVqVI_yMd_OipnISyKxJIL-Fe4LzLwrvf/pub?embedded=true" width="100%" height="1200px"></iframe>
-        <h1>文化祭アンケート人数＆出し物</h1>
-        <p>現在途中集計中...</p>
-      `;
-  } else if (page === 'test') {
-    content.innerHTML = `<div class="card"><h1>テスト範囲</h1><p>現在はございません</p></div>`;
-  } else if (page === 'haihubutu') {
-    content.innerHTML = `<div class="card"><h1>配布プリント</h1>
-      <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTU76u1VutvTIpe6bsjP9ukaqVGf5aiJwWdHvk3pklRjlZM-yImY5Lk9xynxvBHCbpN9ygwi-LIQxkU/pubhtml?gid=280170340&amp;single=true" width="100%" height="1000px"></iframe>
-    </div>`;
+  async function checkPassword() {
+    const input = document.getElementById("password-input").value;
+    if (!input) { alert("パスワードを入力してください。"); return; }
+    const inputHash = await sha256Hex(input);
+    if (inputHash === hashedPassword) {
+      stopQrScanner();
+      document.getElementById("password-screen").style.display = "none";
+      document.getElementById("main-content").style.display = "block";
+    } else {
+      alert("パスワードが違います！");
+    }
   }
-}
+
+  function toggleMenu() {
+    document.getElementById("nav-list").classList.toggle("show");
+  }
+
+  // QRコードスキャナー
+  let html5QrCode;
+  function startQrScanner() {
+    const qrReader = document.getElementById("qr-reader");
+    qrReader.style.display = "block";
+    if (html5QrCode) return;
+    html5QrCode = new Html5Qrcode("qr-reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        document.getElementById("password-input").value = decodedText;
+        checkPassword();
+      },
+      () => {}
+    ).catch(err => alert("カメラの起動に失敗しました：" + err));
+  }
+
+  function stopQrScanner() {
+    if (html5QrCode) {
+      html5QrCode.stop().then(() => {
+        html5QrCode.clear();
+        html5QrCode = null;
+        document.getElementById("qr-reader").style.display = "none";
+      }).catch(err => console.error(err));
+    } else {
+      document.getElementById("qr-reader").style.display = "none";
+    }
+  }
 </script>
 
 </body>
