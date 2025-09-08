@@ -24,40 +24,69 @@
       display: flex; align-items: center; justify-content: space-between; }
     header .logo { font-size: 20px; font-weight: bold; }
     nav ul { display: flex; list-style: none; gap: 15px; }
-    nav ul li a { color: white; text-decoration: none; font-weight: 600; }
+    nav ul li a { color: white; text-decoration: none; font-weight: 600; cursor: pointer; }
     nav ul li a:hover { text-decoration: underline; }
     .menu-toggle { display: none; font-size: 22px; cursor: pointer; }
 
     /* ヒーロー */
-    .hero { 
-      background: url('https://rerizu2.github.io/oji-2025-1AI/1IA%E9%9B%86%E5%90%88%E5%86%99%E7%9C%9F.png') no-repeat center center / cover; /* 背景画像パス */
-      color: white; text-align: center; padding: 120px 20px; position: relative;
+    .hero { position: relative; width: 100%; overflow: hidden; }
+    .hero-img { display: block; width: 100%; height: auto; }
+    .hero-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); }
+    .hero-text {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center; color: white; z-index: 1;
     }
-    .hero::before {
-      content: "";
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.4); /* 文字を見やすくするオーバーレイ */
-      z-index: 0;
-    }
-    .hero h1, .hero p {
-      position: relative;
-      z-index: 1;
-      font-weight: bold;
-    }
-    .hero h1 { font-size: 48px; margin-bottom: 15px; }
-    .hero p { font-size: 22px; }
+    .hero-text h1 { font-size: 48px; margin-bottom: 15px; font-weight: bold; }
+    .hero-text p { font-size: 22px; font-weight: bold; }
 
     /* コンテンツ */
     .page-content { max-width: 1100px; margin: 30px auto; padding: 20px; }
-    .card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+    .card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
     .card h2, .card h1 { color: #005bac; margin-bottom: 10px; }
     .card ul { margin-left: 20px; margin-top: 10px; }
-    .card a { color: white; padding: 6px 10px; border-radius: 5px; text-decoration: none; font-weight: 600; }
-    a#taiiku { background-color: #007bff; }
-    a#ibento { background-color: #e63946; }
-    #mamonaku { color: red; font-weight: bold; }
     iframe { border: none; width: 100%; border-radius: 8px; }
+
+    /* 本格的なボタン */
+    .button {
+      display: inline-block;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .button-blue {
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+    }
+    .button-blue:hover {
+      background: linear-gradient(135deg, #3399ff, #004080);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 10px rgba(0,0,0,0.3);
+    }
+    .button-blue:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .button-red {
+      background: linear-gradient(135deg, #e63946, #a4161a);
+      color: white;
+    }
+    .button-red:hover {
+      background: linear-gradient(135deg, #ff4d5a, #7a1014);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 10px rgba(0,0,0,0.3);
+    }
+    .button-red:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
 
     /* フッター */
     footer { background: #222; color: white; text-align: center; padding: 15px 0; margin-top: 30px; }
@@ -68,9 +97,10 @@
         position: absolute; top: 60px; right: 0; width: 200px; padding: 10px; }
       nav ul.show { display: flex; }
       .menu-toggle { display: block; }
+      .hero-text h1 { font-size: 32px; }
+      .hero-text p { font-size: 18px; }
     }
   </style>
-  <!-- QRコード読み取りライブラリ -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
@@ -81,7 +111,6 @@
   <input type="password" id="password-input" placeholder="パスワード">
   <button onclick="checkPassword()">送信</button>
 
-  <!-- QRコード読み取り -->
   <div id="qr-controls">
     <button onclick="startQrScanner()">📷 QRで読み取る</button>
     <div id="qr-reader"></div>
@@ -106,11 +135,16 @@
   </header>
 
   <section class="hero">
-    <h1>ようこそ 1IA ページへ</h1>
-    <p>情報電子工学科 専用ポータル</p>
+    <img src="https://rerizu2.github.io/oji-2025-1AI/1IA%E9%9B%86%E5%90%88%E5%86%99%E7%9C%9F.png" alt="1IA集合写真" class="hero-img">
+    <div class="hero-overlay"></div>
+    <div class="hero-text">
+      <h1>ようこそ 1IA ページへ</h1>
+      <p>情報電子工学科 専用ポータル</p>
+    </div>
   </section>
 
   <section class="page-content" id="page-content">
+    <!-- 初期表示はホーム -->
     <div class="card">
       <h2>📢 更新情報</h2>
       <ul>
@@ -121,7 +155,7 @@
     </div>
     <div class="card">
       <h1>このページについて</h1>
-      <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料（時間割・カレンダー・配布プリントなど）を一目で確認できます。ご意見は一政まで。</p>
+      <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料を一目で確認できます。ご意見は一政まで。</p>
     </div>
     <div class="card">
       <h1>1IAホームページのQRコード</h1>
@@ -157,8 +191,130 @@
     }
   }
 
+  // --- 補助（開発用）: ブラウザのコンソールで使って新しいパスワードのハッシュを得られます ---
+  // 例: computeHashForConsole("newpass").then(h=>console.log(h));
+  async function computeHashForConsole(plain) {
+    return await sha256Hex(plain);
+  }
+  // ------------------------------------------
+
+  function getResponsiveWidth() {
+    const w = window.innerWidth;
+    if (w > 1000) return 1000;
+    if (w > 600) return 600;
+    return 300;
+  }
+  
+    const navList = document.getElementById("nav-list");
+    navList.classList.remove("show");
+
   function toggleMenu() {
     document.getElementById("nav-list").classList.toggle("show");
+  }
+
+  // ページ切り替え
+  function showPage(page) {
+    const content = document.getElementById("page-content");
+
+    
+    if (page === 'home') {
+      content.innerHTML = `
+        <section class="page-content" id="page-content">
+    <!-- 初期表示はホーム -->
+    <div class="card">
+      <h2>📢 更新情報</h2>
+      <ul>
+        <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
+        <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
+        <li>2025/5/20：時間割更新</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h1>このページについて</h1>
+      <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料を一目で確認できます。ご意見は一政まで。</p>
+    </div>
+    <div class="card">
+      <h1>1IAホームページのQRコード</h1>
+      <img src="王寺工業-1AI-QRコード.png" alt="1AIページQRコード" width="300">
+    </div>
+  </section>
+      `;
+    } else if (page === 'schedule') {
+      const width = getResponsiveWidth();
+      content.innerHTML = `
+        <h1>時間割</h1>
+        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0try5rh29bXvIfaEkguZxKXkh4qunWPHoAbNkZOreHdqWw_nLAQjdhCZ90JxvPlEfPdnSZ39hcfSy/pubhtml?widget=true&amp;headers=false" width="${width}" height="300"></iframe>
+      `;
+    } else if (page === 'calendar') {
+      const width = getResponsiveWidth();
+      content.innerHTML = `
+        <h1>カレンダー</h1>
+        <iframe src="https://calendar.google.com/calendar/embed?src=youmuyizheng%40gmail.com&ctz=Asia%2FTokyo" 
+          width="${width}" height="800" frameborder="0" scrolling="no"></iframe>
+      `;
+    } else　if (page === 'ibento') {
+      content.innerHTML = `
+        <h1>近くなってきたイベント</h1>
+        <div class="card" style="background-color:#e3f2fd;">
+          <h2>📚 校外学習</h2>
+          <p>日付：9月28日</p>
+          <p>場所：未掲示</p>
+          <p>注意事項：未掲示</p>
+        </div>
+        <div class="card" style="background-color:#fff3e0;">
+          <h2>🎉 王工祭</h2>
+          <p>日付：10月31日</p>
+          <p>場所：未掲示</p>
+          <p>内容：未掲示</p>
+        </div>
+
+        <h1>体育大会パフォーマンス最終アンケート</h1>
+        <p>9月8日　23時59分まで</p>
+        <p>
+          <a class="button button-blue" href="https://script.google.com/a/macros/e-net.nara.jp/s/AKfycbwNybBtOge_FT6wSof4iVWCQQhtOZ_2x0kYNhHyT334QAFXhFw5ioigKeByxyO7uL7Q/exec" target="_blank">
+            🏃 体育大会パフォーマンス最終アンケート
+          </a>
+        </p><br>
+
+        <h1>文化祭アンケート</h1>
+        <p>
+          <a class="button button-red" href="https://script.google.com/a/macros/e-net.nara.jp/s/AKfycbw-lGw4oOTdpGOWkG1mtGf07kbrA7Z7YJQbgJmr94cgLOvfX4-kYY9AgBQ_k5hRWQ7usA/exec" target="_blank">
+            🎭 文化祭希望アンケート
+          </a>
+        </p><br>
+        <p>※学校のアカウントでアンケートをしてください</p><br>
+        <h1>体育大会種目＆メンバー現段階！</h1>
+      <iframe 
+  src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTU76u1VutvTIpe6bsjP9ukaqVGf5aiJwWdHvk3pklRjlZM-yImY5Lk9xynxvBHCbpN9ygwi-LIQxkU/pubhtml?gid=280170340&amp;single=true"
+  style="width:70%; height:100vh; border:none;">
+</iframe>
+<h1>体育大会パフォーマンスアンケート人数＆パフォーマンス結果</h1>
+<iframe 
+  src="https://docs.google.com/document/d/e/2PACX-1vSr7iWdUJZbCwW65yeT_wDvv8emc_3EVqGcfZ6zn4XGJ2swVqVI_yMd_OipnISyKxJIL-Fe4LzLwrvf/pub?embedded=true"
+  width="100%" 
+  height="1200px" 
+  style="border:none;">
+</iframe>
+
+<h1>文化祭アンケート人数＆出し物</h1>
+<p>現在途中集計中...</p>
+
+      `;
+    }　else if (page === 'test') {
+      content.innerHTML = `
+        <h1>テスト範囲</h1>
+        <p>現在はございません</p>
+      `;
+    } else if (page === 'haihubutu') {
+      content.innerHTML = `
+        <h1>配布プリント</h1>
+        <iframe src="https://drive.google.com/embeddedfolderview?id=1UfqzRA8LqoqjK4_eUPLElhQr80cMGJFM#grid" style="width:100%; height:400px;"></iframe>
+
+
+      `;
+    }
+
+    document.getElementById("nav-list").classList.remove("show");
   }
 
   // QRコードスキャナー
