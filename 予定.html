@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>情報電子工学科カレンダー</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #020611;
+      --panel: #0d1628;
+      --accent1: #00ffcc;
+      --accent2: #3399ff;
+      --accent3: #ff3399;
+      --grid: rgba(0,255,200,0.05);
+      --text: #d0eaff;
+      --muted: #8ba2c0;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(0,255,204,0.07), transparent 70%),
+        radial-gradient(circle at 80% 70%, rgba(51,153,255,0.07), transparent 70%),
+        repeating-linear-gradient(90deg, rgba(0,255,200,0.03) 0px, rgba(0,255,200,0.03) 1px, transparent 1px, transparent 40px),
+        repeating-linear-gradient(0deg, rgba(0,255,200,0.03) 0px, rgba(0,255,200,0.03) 1px, transparent 1px, transparent 40px);
+      z-index: -1;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .logo {
+      font-size: 26px;
+      font-weight: bold;
+      color: var(--accent1);
+      text-shadow: 0 0 8px var(--accent1);
+    }
+
+    .controls button {
+      background: none;
+      border: 1px solid var(--accent2);
+      color: var(--text);
+      padding: 6px 10px;
+      margin-left: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .controls button:hover {
+      background: var(--accent2);
+      color: #000;
+      box-shadow: 0 0 8px var(--accent2);
+    }
+
+    .panel {
+      background: rgba(10, 20, 35, 0.8);
+      border: 1px solid rgba(0,255,255,0.1);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 0 20px rgba(0,255,200,0.08) inset, 0 0 10px rgba(0,255,255,0.05);
+      width: 100%;
+    }
+
+    .month-header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 20px;
+      color: var(--accent1);
+      text-shadow: 0 0 8px var(--accent1);
+    }
+
+    .weekdays, .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+
+    .weekday {
+      font-size: 12px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .day {
+      border: 1px solid var(--grid);
+      border-radius: 8px;
+      padding: 6px;
+      min-height: 100px;
+      background: rgba(0,10,20,0.6);
+      transition: all 0.15s;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .day:hover { background: rgba(0,255,255,0.06); transform: scale(1.02); }
+    .day.other { opacity: 0.2; }
+    .day.today { outline: 2px solid var(--accent3); box-shadow: 0 0 10px var(--accent3); }
+    .date { font-size: 13px; color: var(--accent2); margin-bottom: 4px; }
+
+    .events {
+      font-size: 11px;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .event {
+      background: rgba(0,255,204,0.08);
+      border-left: 2px solid var(--accent1);
+      padding-left: 4px;
+      margin-bottom: 2px;
+      border-radius: 2px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .modal {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px);
+    }
+
+    .modal-card {
+      background: var(--panel);
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid var(--accent2);
+      width: 320px;
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 8px;
+      background: #000;
+      border: 1px solid var(--accent1);
+      color: var(--text);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .modal button {
+      background: var(--accent1);
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-right: 4px;
+    }
+
+    @media print {
+      body { background: white !important; color: black !important; }
+      .controls, .modal, #pdfBtn { display: none !important; }
+      .panel { background: white !important; box-shadow: none !important; border: 1px solid #aaa !important; }
+      .day { border: 1px solid #ccc !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="logo">情報電子工学科 Calendar</div>
+      <div class="controls">
+        <button id="prevBtn">◀</button>
+        <button id="todayBtn">今日</button>
+        <button id="nextBtn">▶</button>
+        <button id="pdfBtn">PDFに保存</button>
+      </div>
+    </div>
+
+    <div class="panel" id="calendarPanel">
+      <div class="month-header"><span id="monthTitle"></span></div>
+      <div class="weekdays" id="weekdays"></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <div id="modal" class="modal" style="display:none">
+    <div class="modal-card">
+      <div style="font-weight:bold;margin-bottom:10px">新しいイベント</div>
+      <input id="evtDate" readonly />
+      <input id="evtTime" placeholder="時間 (任意)" />
+      <input id="evtTitle" placeholder="タイトル" />
+      <button id="saveEvent">保存</button>
+      <button id="closeModal">閉じる</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <script>
+    const DAYS = ['日','月','火','水','木','金','土'];
+    const el = id => document.getElementById(id);
+    const state = { today: new Date(), viewDate: new Date(), events:{} };
+    const STORAGE_KEY = 'it_calendar_events';
+
+    function isoDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    function load(){ const raw=localStorage.getItem(STORAGE_KEY); if(raw) state.events=JSON.parse(raw); }
+    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events)); }
+
+    function renderWeekdays(){ el('weekdays').innerHTML = DAYS.map(d=>`<div class='weekday'>${d}</div>`).join(''); }
+
+    function renderMonth(){
+      const view = new Date(state.viewDate.getFullYear(), state.viewDate.getMonth(), 1);
+      el('monthTitle').textContent = `${view.getFullYear()}年 ${view.getMonth()+1}月`;
+      const grid = el('grid'); grid.innerHTML='';
+      const first = view.getDay();
+      const days = new Date(view.getFullYear(), view.getMonth()+1, 0).getDate();
+      const total = 42;
+      for(let i=0;i<total;i++){
+        const idx = i - first + 1;
+        const cell = document.createElement('div'); cell.className='day';
+        let date;
+        if(idx<=0){ date = new Date(view.getFullYear(), view.getMonth()-1, new Date(view.getFullYear(), view.getMonth(), 0).getDate()+idx); cell.classList.add('other'); }
+        else if(idx>days){ date = new Date(view.getFullYear(), view.getMonth()+1, idx-days); cell.classList.add('other'); }
+        else date = new Date(view.getFullYear(), view.getMonth(), idx);
+        const iso = isoDate(date);
+        if(iso===isoDate(state.today)) cell.classList.add('today');
+        const dateLabel = document.createElement('div');
+        dateLabel.className = 'date';
+        dateLabel.textContent = date.getDate();
+        cell.appendChild(dateLabel);
+
+        const evs = state.events[iso] || [];
+        const evBox = document.createElement('div');
+        evBox.className = 'events';
+        evs.slice(0,3).forEach(ev=>{
+          const eDiv = document.createElement('div');
+          eDiv.className = 'event';
+          eDiv.textContent = (ev.time?ev.time+' ':'') + ev.title;
+          evBox.appendChild(eDiv);
+        });
+        if(evs.length>3){
+          const more = document.createElement('div');
+          more.textContent = `…他${evs.length-3}件`;
+          more.style.color = 'var(--muted)';
+          more.style.fontSize = '10px';
+          evBox.appendChild(more);
+        }
+        cell.appendChild(evBox);
+        cell.onclick=()=>openModal(iso);
+        grid.appendChild(cell);
+      }
+    }
+
+    function openModal(date){ el('modal').style.display='flex'; el('evtDate').value=date; el('evtTime').value=''; el('evtTitle').value=''; }
+    function closeModal(){ el('modal').style.display='none'; }
+    function saveEvent(){
+      const date=el('evtDate').value;
+      const t=el('evtTime').value;
+      const title=el('evtTitle').value.trim();
+      if(!title)return;
+      const ev={id:Date.now(),time:t,title};
+      if(!state.events[date])state.events[date]=[];
+      state.events[date].push(ev);
+      save(); renderMonth(); closeModal();
+    }
+
+    function nextMonth(){ state.viewDate = new Date(state.viewDate.getFullYear(), state.viewDate.getMonth()+1, 1); renderMonth(); }
+    function prevMonth(){ state.viewDate = new Date(state.viewDate.getFullYear(), state.viewDate.getMonth()-1, 1); renderMonth(); }
+    function goToday(){ state.viewDate = new Date(state.today.getFullYear(), state.today.getMonth(), 1); renderMonth(); }
+
+    el('nextBtn').onclick=nextMonth; el('prevBtn').onclick=prevMonth; el('todayBtn').onclick=goToday;
+    el('closeModal').onclick=closeModal; el('saveEvent').onclick=saveEvent;
+
+    // === PDF保存（カレンダー部分のみ / A4横） ===
+    document.getElementById('pdfBtn').addEventListener('click', async () => {
+      const { jsPDF } = window.jspdf;
+      const panel = document.getElementById('calendarPanel');
+      const canvas = await html2canvas(panel, { scale: 3, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+
+      // PDF横向き設定（A4 Landscape）
+      const pdf = new jsPDF('landscape', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // サイズ調整して中央配置
+      const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+      const finalWidth = canvas.width * ratio;
+      const finalHeight = canvas.height * ratio;
+      const x = (pageWidth - finalWidth) / 2;
+      const y = (pageHeight - finalHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+      pdf.save('情報電子工学科カレンダー.pdf');
+    });
+
+    load(); renderWeekdays(); renderMonth();
+  </script>
+</body>
+</html>
