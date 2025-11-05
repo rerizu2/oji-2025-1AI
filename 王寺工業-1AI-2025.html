@@ -30,7 +30,7 @@
 
     /* ヒーロー */
     .hero { position: relative; width: 100%; overflow: hidden; }
-    .hero-img { display: block; width: 100%; height: auto; }
+    .hero-img { display: block; width: 100%; height: auto; transition: opacity 1.5s ease; }
     .hero-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); }
     .hero-text {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -38,6 +38,33 @@
     }
     .hero-text h1 { font-size: 48px; margin-bottom: 15px; font-weight: bold; }
     .hero-text p { font-size: 22px; font-weight: bold; }
+
+    /* ヒーロー画像切り替えボタン */
+    .hero-buttons {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 15px;
+      z-index: 2;
+    }
+    .hero-btn {
+      background: rgba(255,255,255,0.7);
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      font-size: 22px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+    }
+    .hero-btn:hover {
+      background: #005bac;
+      color: white;
+      transform: scale(1.1);
+    }
 
     /* コンテンツ */
     .page-content { max-width: 1100px; margin: 30px auto; padding: 20px; }
@@ -135,19 +162,25 @@
   </header>
 
   <section class="hero">
-    <img src="https://rerizu2.github.io/oji-2025-1AI/1IA%E9%9B%86%E5%90%88%E5%86%99%E7%9C%9F.png" alt="1IA集合写真" class="hero-img">
+    <img src="https://rerizu2.github.io/oji-2025-1AI/文化祭.png" alt="1IA集合写真スライド" class="hero-img">
     <div class="hero-overlay"></div>
     <div class="hero-text">
       <h1>ようこそ 1IA ページへ</h1>
       <p>情報電子工学科</p>
     </div>
+
+    <!-- 画像切り替えボタン -->
+    <div class="hero-buttons">
+      <button class="hero-btn" onclick="prevHero()">◀</button>
+      <button class="hero-btn" onclick="nextHero()">▶</button>
+    </div>
   </section>
 
   <section class="page-content" id="page-content">
-    <!-- 初期表示はホーム -->
     <div class="card">
       <h2>📢 更新情報</h2>
       <ul>
+        <li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
         <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
         <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
         <li>2025/5/20：時間割更新</li>
@@ -191,12 +224,9 @@
     }
   }
 
-  // --- 補助（開発用）: ブラウザのコンソールで使って新しいパスワードのハッシュを得られます ---
-  // 例: computeHashForConsole("newpass").then(h=>console.log(h));
   async function computeHashForConsole(plain) {
     return await sha256Hex(plain);
   }
-  // ------------------------------------------
 
   function getResponsiveWidth() {
     const w = window.innerWidth;
@@ -205,54 +235,46 @@
     return 300;
   }
   
-    const navList = document.getElementById("nav-list");
-    navList.classList.remove("show");
+  const navList = document.getElementById("nav-list");
+  navList.classList.remove("show");
 
   function toggleMenu() {
     document.getElementById("nav-list").classList.toggle("show");
   }
 
-  // ページ切り替え
   function showPage(page) {
     const content = document.getElementById("page-content");
 
-    
     if (page === 'home') {
       content.innerHTML = `
-        <section class="page-content" id="page-content">
-    <!-- 初期表示はホーム -->
-    <div class="card">
-      <h2>📢 更新情報</h2>
-      <ul>
-        <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
-        <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
-        <li>2025/5/20：時間割更新</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h1>このページについて</h1>
-      <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料を一目で確認できます。ご意見は一政まで。</p>
-    </div>
-    <div class="card">
-      <h1>1IAホームページのQRコード</h1>
-      <img src="王寺工業-1AI-QRコード-2.png" alt="新1-1AIページQRコード" width="300">
-    </div>
-  </section>
-      `;
+        <div class="card">
+          <h2>📢 更新情報</h2>
+          <ul>
+            <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
+            <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
+            <li>2025/5/20：時間割更新</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h1>このページについて</h1>
+          <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料を一目で確認できます。ご意見は一政まで。</p>
+        </div>
+        <div class="card">
+          <h1>1IAホームページのQRコード</h1>
+          <img src="王寺工業-1AI-QRコード-2.png" alt="新1-1AIページQRコード" width="300">
+        </div>`;
     } else if (page === 'schedule') {
       const width = getResponsiveWidth();
       content.innerHTML = `
         <h1>時間割</h1>
-        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0try5rh29bXvIfaEkguZxKXkh4qunWPHoAbNkZOreHdqWw_nLAQjdhCZ90JxvPlEfPdnSZ39hcfSy/pubhtml?widget=true&amp;headers=false" width="${width}" height="300"></iframe>
-      `;
+        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0try5rh29bXvIfaEkguZxKXkh4qunWPHoAbNkZOreHdqWw_nLAQjdhCZ90JxvPlEfPdnSZ39hcfSy/pubhtml?widget=true&amp;headers=false" width="${width}" height="300"></iframe>`;
     } else if (page === 'calendar') {
       const width = getResponsiveWidth();
       content.innerHTML = `
         <h1>カレンダー</h1>
         <iframe src="https://calendar.google.com/calendar/embed?src=youmuyizheng%40gmail.com&ctz=Asia%2FTokyo" 
-          width="${width}" height="800" frameborder="0" scrolling="no"></iframe>
-      `;
-    } else　if (page === 'ibento') {
+          width="${width}" height="800" frameborder="0" scrolling="no"></iframe>`;
+    } else if (page === 'ibento') {
       content.innerHTML = `
         <h1>近くなってきたイベント</h1>
         <div class="card" style="background-color:#fff3e0;">
@@ -260,20 +282,15 @@
           <p>日付：10月31日</p>
           <p>場所：王寺工業高等学校</p>
           <p>内容：未</p>
-        </div>
-      `;
-    }　else if (page === 'test') {
+        </div>`;
+    } else if (page === 'test') {
       content.innerHTML = `
         <h1>テスト範囲</h1>
-        <p>現在はございません</p>
-      `;
+        <p>現在はございません</p>`;
     } else if (page === 'haihubutu') {
       content.innerHTML = `
         <h1>配布プリント</h1>
-        <iframe src="https://drive.google.com/embeddedfolderview?id=1UfqzRA8LqoqjK4_eUPLElhQr80cMGJFM#grid" style="width:100%; height:400px;"></iframe>
-
-
-      `;
+        <iframe src="https://drive.google.com/embeddedfolderview?id=1UfqzRA8LqoqjK4_eUPLElhQr80cMGJFM#grid" style="width:100%; height:400px;"></iframe>`;
     }
 
     document.getElementById("nav-list").classList.remove("show");
@@ -308,7 +325,39 @@
       document.getElementById("qr-reader").style.display = "none";
     }
   }
-</script>
 
+  // ------------------------------
+  // ヒーロー画像 自動＋ボタン切り替え機能
+  // ------------------------------
+  const heroImages = [
+    "https://rerizu2.github.io/oji-2025-1AI/文化祭.png",
+    "https://rerizu2.github.io/oji-2025-1AI/体育大会.png",
+    "https://rerizu2.github.io/oji-2025-1AI/校外学習.png",
+    "https://rerizu2.github.io/oji-2025-1AI/球技大会.png"
+  ];
+  let currentHeroIndex = 0;
+  const heroImgElement = document.querySelector(".hero-img");
+
+  function showHeroImage(index) {
+    heroImgElement.style.opacity = 0;
+    setTimeout(() => {
+      heroImgElement.src = heroImages[index];
+      heroImgElement.style.opacity = 1;
+    }, 500);
+  }
+
+  function nextHero() {
+    currentHeroIndex = (currentHeroIndex + 1) % heroImages.length;
+    showHeroImage(currentHeroIndex);
+  }
+
+  function prevHero() {
+    currentHeroIndex = (currentHeroIndex - 1 + heroImages.length) % heroImages.length;
+    showHeroImage(currentHeroIndex);
+  }
+
+  // 自動スライド（6秒ごと）
+  setInterval(nextHero, 5000);
+</script>
 </body>
 </html>
