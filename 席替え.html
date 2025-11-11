@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>席替え＋出席番号編集機能付き</title>
+<style>
+  body {
+    font-family: "Yu Gothic", "Segoe UI", sans-serif;
+    background-color: #f0f3f9;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 30px;
+    flex-wrap: wrap;
+  }
+  .seating-container {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    width: 600px;
+    text-align: center;
+  }
+  .control-panel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  select {
+    padding: 6px 10px;
+    font-size: 1em;
+    border-radius: 6px;
+    border: 1px solid #888;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 1.1em;
+    background: linear-gradient(180deg, #e0e0e0, #bdbdbd);
+    border: 2px solid #888;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+  }
+  button:hover { background: linear-gradient(180deg, #f0f0f0, #d0d0d0); }
+  .teacher {
+    text-align: center;
+    font-weight: bold;
+    padding: 10px;
+    border: 2px solid #333;
+    background-color: #e1f0ff;
+    border-radius: 6px;
+    margin-bottom: 15px;
+  }
+  .seating { display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; justify-content: center; gap: 10px; }
+  .seat {
+    width: 90px;
+    height: 60px;
+    background-color: white;
+    border: 1px solid #555;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: transform 0.25s ease, background-color 0.25s ease;
+    font-size: 0.95em;
+  }
+  .seat.animate { transform: translateY(-6px) rotate(4deg); }
+  .seat.fixed { background-color: #d6f5ff; font-weight: bold; }
+  .footer { margin-top: 20px; font-size: 0.9em; color: #666; }
+  .table-container {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    width: 450px;
+  }
+  table { border-collapse: collapse; width: 100%; background: white; border-radius: 10px; overflow: hidden; }
+  th, td { border: 1px solid #ccc; padding: 10px 14px; text-align: center; }
+  th { background-color: #e1f0ff; font-weight: bold; }
+  tr:nth-child(even) { background-color: #f9f9f9; }
+  tr.checked { background-color: #d7f8d7 !important; }
+  input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
+  caption { font-size: 1.4em; font-weight: bold; margin-bottom: 10px; }
+  .button-group { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+  .status { margin-top: 10px; color: #444; font-size: 0.95em; }
+</style>
+</head>
+<body>
+
+<div class="seating-container">
+  <h1>席替えページ</h1>
+  <div class="control-panel">
+    <label for="shuffleCount">回数：</label>
+    <select id="shuffleCount"></select>
+    <button id="shuffleBtn">席替え</button>
+  </div>
+
+  <div class="teacher">教卓</div>
+  <div class="seating" id="seatingArea"></div>
+  <div class="footer">チェックされた生徒は前列固定になります。</div>
+  <div class="status" id="statusText"></div>
+</div>
+
+<div class="table-container">
+  <table id="studentTable">
+    <caption>出席番号一覧</caption>
+    <thead>
+      <tr>
+        <th>出席番号と名前</th>
+        <th>出席番号</th>
+        <th>名前</th>
+        <th>チェック</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="button-group">
+    <button id="addRowBtn">＋ 枠を追加</button>
+  </div>
+</div>
+
+<script>
+const select = document.getElementById("shuffleCount");
+for(let i=1;i<=100;i++){
+  const opt=document.createElement("option");
+  opt.value=i;
+  opt.textContent=`${i}回`;
+  select.appendChild(opt);
+}
+
+const defaultStudents = [
+  "秋山","池田","一政","今中","遠地","岡田","岡崎","小川","柏木","神谷",
+  "岸上","北野","幸元","小走","清水","高橋","竹林","竹村","田中","中井",
+  "中村","西端","西野","延原","滝脇","比嘉","本田","松山","南","泰川",
+  "森中","山崎","山本","吉村","米田"
+];
+const tbody = document.querySelector("#studentTable tbody");
+const seatingArea = document.getElementById("seatingArea");
+const shuffleBtn = document.getElementById("shuffleBtn");
+const statusText = document.getElementById("statusText");
+const fixedStudents = new Set();
+
+function addRow(num, name = "") {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${num} ${name}</td>
+    <td contenteditable="true">${num}</td>
+    <td contenteditable="true">${name}</td>
+    <td><input type="checkbox"></td>
+  `;
+  const checkbox = tr.querySelector("input");
+  checkbox.addEventListener("change", () => {
+    tr.classList.toggle("checked", checkbox.checked);
+    const studentName = tr.children[2].textContent.trim();
+    if (checkbox.checked) fixedStudents.add(studentName);
+    else fixedStudents.delete(studentName);
+  });
+  tr.children[1].addEventListener("input", update);
+  tr.children[2].addEventListener("input", update);
+  function update(){
+    const num = tr.children[1].textContent.trim();
+    const name = tr.children[2].textContent.trim();
+    tr.children[0].textContent = `${num} ${name}`;
+  }
+  tbody.appendChild(tr);
+}
+defaultStudents.forEach((n,i)=>addRow(i+1,n));
+document.getElementById("addRowBtn").addEventListener("click",()=>addRow(tbody.rows.length+1,""));
+
+function getCurrentStudentList(){
+  const list=[];
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const num=tr.children[1].textContent.trim();
+    const name=tr.children[2].textContent.trim();
+    if(name||num) list.push({num,name});
+  });
+  return list;
+}
+
+const seatLayout=[3,6,6,6,6,6,2];
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function renderSeats(studentList,checkedSet,doShuffle=false){
+  seatingArea.innerHTML="";
+  const checked=Array.from(checkedSet);
+  const nonChecked=studentList.filter(s=>!checkedSet.has(s.name));
+  let fixedRowCount=0,fixedSeatCapacity=0;
+  if(checked.length>=1&&checked.length<=3){fixedRowCount=1;fixedSeatCapacity=seatLayout[0];}
+  else if(checked.length>=4&&checked.length<=9){fixedRowCount=2;fixedSeatCapacity=seatLayout[0]+seatLayout[1];}
+  let fixedList=[],remainingList=[];
+  if(fixedRowCount>0&&checked.length>0){
+    let checkedList=studentList.filter(s=>checkedSet.has(s.name));
+    if(doShuffle)checkedList=shuffle(checkedList);
+    fixedList=checkedList.slice(0,fixedSeatCapacity);
+    const rest=checkedList.slice(fixedSeatCapacity);
+    remainingList=doShuffle?shuffle([...nonChecked,...rest]):[...nonChecked,...rest];
+  }else remainingList=doShuffle?shuffle(studentList):studentList.slice();
+  let seatIndex=0;
+  seatLayout.forEach((count,rowIndex)=>{
+    const row=document.createElement("div");
+    row.className="row";
+    for(let i=0;i<count;i++){
+      const seat=document.createElement("div");
+      seat.className="seat";
+      let student=null,isFixed=false;
+      if(rowIndex<fixedRowCount&&fixedList.length>0){
+        student=fixedList.shift();isFixed=true;
+      }else if(remainingList.length>0){
+        student=remainingList.shift();
+        if(checkedSet.has(student.name))isFixed=true;
+      }else student={num:"-",name:`空席${seatIndex+1}`};
+      seat.textContent=`${student.num} ${student.name}`;
+      if(isFixed)seat.classList.add("fixed");
+      row.appendChild(seat);
+      seatIndex++;
+    }
+    seatingArea.appendChild(row);
+  });
+}
+
+function performShuffles(times){
+  if(times<=0)return;
+  let current=0;const delay=300;
+  statusText.textContent=`席替え中：1/${times}`;
+  function step(){
+    renderSeats(getCurrentStudentList(),fixedStudents,true);
+    current++;
+    statusText.textContent=`席替え中：${current}/${times}`;
+    if(current<times)setTimeout(step,delay);
+    else{
+      setTimeout(()=>{
+        statusText.textContent=`席替え完了（${times}回）`;
+        setTimeout(()=>statusText.textContent="",1200);
+      },200);
+    }
+  }
+  step();
+}
+shuffleBtn.addEventListener("click",()=>{
+  const times=parseInt(select.value,10)||1;
+  performShuffles(times);
+});
+renderSeats(getCurrentStudentList(),fixedStudents,false);
+</script>
+
+</body>
+</html>
