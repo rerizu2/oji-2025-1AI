@@ -14,14 +14,20 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       height: 100vh; background-color: #333; color: white;
     }
-    .password-screen input,
-    .password-screen button { padding: 10px; font-size: 16px; margin-top: 10px; }
-    #qr-reader { width: 100%; max-width: 320px; margin-top: 10px; display: none;
-      border: 3px solid #ffa502; border-radius: 10px; padding: 10px; background-color: white; }
+    .password-screen input, .password-screen button {
+      padding: 10px; font-size: 16px; margin-top: 10px;
+    }
+    #qr-reader {
+      width: 100%; max-width: 320px; margin-top: 10px; display: none;
+      border: 3px solid #ffa502; border-radius: 10px; padding: 10px; background-color: white;
+    }
 
     /* ヘッダー */
-    header { background: #005bac; color: white; padding: 10px 20px; position: sticky; top: 0; z-index: 1000;
-      display: flex; align-items: center; justify-content: space-between; }
+    header {
+      background: #005bac; color: white; padding: 10px 20px;
+      position: sticky; top: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: space-between;
+    }
     header .logo { font-size: 20px; font-weight: bold; }
     nav ul { display: flex; list-style: none; gap: 15px; }
     nav ul li a { color: white; text-decoration: none; font-weight: 600; cursor: pointer; }
@@ -32,96 +38,67 @@
     .hero { position: relative; width: 100%; overflow: hidden; }
     .hero-img { display: block; width: 100%; height: auto; transition: opacity 1.5s ease; }
     .hero-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); }
-    .hero-text {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      text-align: center; color: white; z-index: 1;
-    }
+    .hero-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; z-index: 1; }
     .hero-text h1 { font-size: 48px; margin-bottom: 15px; font-weight: bold; }
     .hero-text p { font-size: 22px; font-weight: bold; }
 
     /* ヒーロー画像切り替えボタン */
     .hero-buttons {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 15px;
-      z-index: 2;
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 15px; z-index: 2;
     }
     .hero-btn {
-      background: rgba(255,255,255,0.7);
-      border: none;
-      border-radius: 50%;
-      width: 45px;
-      height: 45px;
-      font-size: 22px;
-      cursor: pointer;
-      transition: all 0.3s ease;
+      background: rgba(255,255,255,0.7); border: none; border-radius: 50%;
+      width: 45px; height: 45px; font-size: 22px; cursor: pointer; transition: all 0.3s ease;
       box-shadow: 0 3px 5px rgba(0,0,0,0.3);
     }
-    .hero-btn:hover {
-      background: #005bac;
-      color: white;
-      transform: scale(1.1);
-    }
+    .hero-btn:hover { background: #005bac; color: white; transform: scale(1.1); }
 
     /* コンテンツ */
     .page-content { max-width: 1100px; margin: 30px auto; padding: 20px; }
-    .card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+    .card {
+      background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
     .card h2, .card h1 { color: #005bac; margin-bottom: 10px; }
     .card ul { margin-left: 20px; margin-top: 10px; }
     iframe { border: none; width: 100%; border-radius: 8px; }
 
-    /* 本格的なボタン */
+    /* ボタン */
     .button {
-      display: inline-block;
-      padding: 12px 20px;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      text-decoration: none;
-      text-align: center;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      display: inline-block; padding: 12px 20px; font-size: 16px; font-weight: bold;
+      border: none; border-radius: 8px; cursor: pointer; text-decoration: none; text-align: center;
+      transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
     .button-blue {
-      background: linear-gradient(135deg, #007bff, #0056b3);
-      color: white;
+      background: linear-gradient(135deg, #007bff, #0056b3); color: white;
     }
     .button-blue:hover {
       background: linear-gradient(135deg, #3399ff, #004080);
       transform: translateY(-2px);
       box-shadow: 0 6px 10px rgba(0,0,0,0.3);
     }
-    .button-blue:active {
-      transform: translateY(1px);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    .button-red {
-      background: linear-gradient(135deg, #e63946, #a4161a);
-      color: white;
-    }
-    .button-red:hover {
-      background: linear-gradient(135deg, #ff4d5a, #7a1014);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 10px rgba(0,0,0,0.3);
-    }
-    .button-red:active {
-      transform: translateY(1px);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
 
     /* フッター */
     footer { background: #222; color: white; text-align: center; padding: 15px 0; margin-top: 30px; }
 
-    /* レスポンシブ */
+    /* ソース表示オーバーレイ */
+    #sourceOverlay {
+      display: none;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.95); color: #dcdcdc;
+      overflow-y: scroll; z-index: 2000; padding: 20px;
+      font-family: 'Consolas', 'Monaco', monospace; font-size: 14px;
+      white-space: pre-wrap; word-wrap: break-word;
+    }
+    #closeSource {
+      position: fixed; top: 15px; right: 20px;
+      background: #e63946; color: white; border: none; padding: 10px 15px;
+      border-radius: 6px; cursor: pointer; font-weight: bold; z-index: 2100;
+    }
+
     @media (max-width: 768px) {
-      nav ul { display: none; flex-direction: column; background-color: #005bac;
-        position: absolute; top: 60px; right: 0; width: 200px; padding: 10px; }
+      nav ul { display: none; flex-direction: column; background-color: #005bac; position: absolute; top: 60px; right: 0; width: 200px; padding: 10px; }
       nav ul.show { display: flex; }
       .menu-toggle { display: block; }
       .hero-text h1 { font-size: 32px; }
@@ -132,124 +109,121 @@
 </head>
 <body>
 
-<!-- パスワード画面 -->
-<div class="password-screen" id="password-screen">
-  <h1>パスワードを入力してください</h1>
-  <input type="password" id="password-input" placeholder="パスワード">
-  <button onclick="checkPassword()">送信</button>
-
-  <div id="qr-controls">
-    <button onclick="startQrScanner()">📷 QRで読み取る</button>
-    <div id="qr-reader"></div>
+  <!-- パスワード画面 -->
+  <div class="password-screen" id="password-screen">
+    <h1>パスワードを入力してください</h1>
+    <input type="password" id="password-input" placeholder="パスワード">
+    <button onclick="checkPassword()">送信</button>
+    <div id="qr-controls">
+      <button onclick="startQrScanner()">📷 QRで読み取る</button>
+      <div id="qr-reader"></div>
+    </div>
   </div>
-</div>
 
-<!-- 本編画面 -->
-<div class="main-content" id="main-content" style="display:none;">
-  <header>
-    <div class="logo">1年 I科 A組</div>
-    <div class="menu-toggle" onclick="toggleMenu()">☰</div>
-    <nav>
-      <ul id="nav-list">
-        <li><a onclick="showPage('home')">ホーム</a></li>
-        <li><a onclick="showPage('schedule')">時間割</a></li>
-        <li><a onclick="showPage('calendar')">カレンダー</a></li>
-        <li><a onclick="showPage('ibento')">イベント</a></li>
-        <li><a onclick="showPage('test')">テスト</a></li>
-        <li><a onclick="showPage('haihubutu')">配布プリント</a></li>
-      </ul>
-    </nav>
-  </header>
+  <!-- 本編画面 -->
+  <div class="main-content" id="main-content" style="display:none;">
+    <header>
+      <div class="logo">1年 I科 A組</div>
+      <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+      <nav>
+        <ul id="nav-list">
+          <li><a onclick="showPage('home')">ホーム</a></li>
+          <li><a onclick="showPage('schedule')">時間割</a></li>
+          <li><a onclick="showPage('calendar')">カレンダー</a></li>
+          <li><a onclick="showPage('ibento')">イベント</a></li>
+          <li><a onclick="showPage('test')">テスト</a></li>
+          <li><a onclick="showPage('haihubutu')">配布プリント</a></li>
+        </ul>
+      </nav>
+    </header>
 
-  <section class="hero">
-    <img src="https://rerizu2.github.io/oji-2025-1AI/文化祭.png" alt="1IA集合写真スライド" class="hero-img">
-    <div class="hero-overlay"></div>
-    <div class="hero-text">
-      <h1>ようこそ 1IA ページへ</h1>
-      <p>情報電子工学科</p>
-    </div>
+    <section class="hero">
+      <img src="https://rerizu2.github.io/oji-2025-1AI/文化祭.png" alt="1IA集合写真スライド" class="hero-img">
+      <div class="hero-overlay"></div>
+      <div class="hero-text">
+        <h1>ようこそ 1IA ページへ</h1>
+        <p>情報電子工学科</p>
+      </div>
+      <div class="hero-buttons">
+        <button class="hero-btn" onclick="prevHero()">◀</button>
+        <button class="hero-btn" onclick="nextHero()">▶</button>
+      </div>
+    </section>
 
-    <!-- 画像切り替えボタン -->
-    <div class="hero-buttons">
-      <button class="hero-btn" onclick="prevHero()">◀</button>
-      <button class="hero-btn" onclick="nextHero()">▶</button>
-    </div>
-  </section>
+    <section class="page-content" id="page-content">
+      <div class="card">
+        <h2>📢 更新情報</h2>
+        <ul>
+          <li>2025/11/11：イベントに席替えアプリを公開<br>【Ctrl+D】でホームページのソースコード（プログラム）が見れるようになりました</li>
+          <li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
+          <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
+          <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
+          <li>2025/5/20：時間割更新</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h1>このページについて</h1>
+        <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料を一目で確認できます。ご意見は一政まで。</p>
+      </div>
+      <div class="card">
+        <h1>1IAホームページのQRコード</h1>
+        <img src="王寺工業-1AI-QRコード-2.png.png" alt="1AIページQRコード" width="300">
+      </div>
+    </section>
 
-  <section class="page-content" id="page-content">
-    <div class="card">
-      <h2>📢 更新情報</h2>
-      <ul>
-        <li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
-        <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
-        <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
-        <li>2025/5/20：時間割更新</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h1>このページについて</h1>
-      <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料を一目で確認できます。ご意見は一政まで。</p>
-    </div>
-    <div class="card">
-      <h1>1IAホームページのQRコード</h1>
-      <img src="1IAホームページ-QRコード.png" alt="1AIページQRコード" width="300">
-    </div>
-  </section>
+    <footer>
+      <p>&copy; 2025 王寺工業高等学校 1年A組 I科</p>
+    </footer>
+  </div>
 
-  <footer>
-    <p>&copy; 2025 王寺工業高等学校 1年A組 I科</p>
-  </footer>
-</div>
+  <!-- ソースコードオーバーレイ -->
+  <div id="sourceOverlay"></div>
+  <button id="closeSource" style="display:none;" onclick="closeSource()">✖ 閉じる</button>
 
-<script>
-  const hashedPassword = "010f205df33f64fd3d9c046d7a242e2cee1a0a50a9222af275a380bf9e69a8ae";
+  <script>
+    const hashedPassword = "010f205df33f64fd3d9c046d7a242e2cee1a0a50a9222af275a380bf9e69a8ae";
 
-  async function sha256Hex(text) {
-    const enc = new TextEncoder();
-    const data = enc.encode(text);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
-  }
-
-  async function checkPassword() {
-    const input = document.getElementById("password-input").value;
-    if (!input) { alert("パスワードを入力してください。"); return; }
-    const inputHash = await sha256Hex(input);
-    if (inputHash === hashedPassword) {
-      stopQrScanner();
-      document.getElementById("password-screen").style.display = "none";
-      document.getElementById("main-content").style.display = "block";
-    } else {
-      alert("パスワードが違います！");
+    async function sha256Hex(text) {
+      const data = new TextEncoder().encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
-  }
 
-  async function computeHashForConsole(plain) {
-    return await sha256Hex(plain);
-  }
+    async function checkPassword() {
+      const input = document.getElementById("password-input").value.trim();
+      if (!input) {
+        alert("パスワードを入力してください。");
+        return;
+      }
+      const inputHash = await sha256Hex(input);
+      if (inputHash === hashedPassword) {
+        document.getElementById("password-screen").style.display = "none";
+        document.getElementById("main-content").style.display = "block";
+      } else {
+        alert("パスワードが違います！");
+      }
+    }
 
-  function getResponsiveWidth() {
-    const w = window.innerWidth;
-    if (w > 1000) return 1000;
-    if (w > 600) return 600;
-    return 300;
-  }
-  
-  const navList = document.getElementById("nav-list");
-  navList.classList.remove("show");
+    function toggleMenu() {
+      document.getElementById("nav-list").classList.toggle("show");
+    }
 
-  function toggleMenu() {
-    document.getElementById("nav-list").classList.toggle("show");
-  }
+    function getResponsiveWidth() {
+      const w = window.innerWidth;
+      if (w > 1000) return 1000;
+      if (w > 600) return 600;
+      return 300;
+    }
 
-  function showPage(page) {
-    const content = document.getElementById("page-content");
-
-    if (page === 'home') {
+    function showPage(page) {
+      const content = document.getElementById("page-content");
+      if (page === 'home') {
       content.innerHTML = `
         <div class="card">
           <h2>📢 更新情報</h2>
           <ul>
+          　<li>2025/11/11：イベントに席替えアプリを公開<br>【Ctrl+D】でホームページのソースコード（プログラム）が見れるようになりました</li>
+          　<li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
             <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
             <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
             <li>2025/5/20：時間割更新</li>
@@ -275,15 +249,17 @@
         <iframe src="https://calendar.google.com/calendar/embed?src=youmuyizheng%40gmail.com&ctz=Asia%2FTokyo" 
           width="${width}" height="800" frameborder="0" scrolling="no"></iframe>`;
     } else if (page === 'ibento') {
-      content.innerHTML = `
-        <h1>近くなってきたイベント</h1>
-        <div class="card" style="background-color:#fff3e0;">
-          <h2>🎉 王工祭</h2>
-          <p>日付：10月31日</p>
-          <p>場所：王寺工業高等学校</p>
-          <p>内容：未</p>
-        </div>`;
-    } else if (page === 'test') {
+        content.innerHTML = `
+          <h1>席替えシステム</h1>
+          <iframe src="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" width="100%" height="800"></iframe>
+          <a href="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" class="button button-blue" target="_blank">
+            席替えシステムリンクはこちら
+          </a>
+          <h1>近くなってきたイベント</h1>
+          <div class="card" style="background-color:#fff3e0;">
+            <p>現在はありません。</p>
+          </div>`;
+      } else if (page === 'test') {
       content.innerHTML = `
         <h1>テスト範囲</h1>
         <p>現在はございません</p>`;
@@ -292,72 +268,52 @@
         <h1>配布プリント</h1>
         <iframe src="https://drive.google.com/embeddedfolderview?id=1UfqzRA8LqoqjK4_eUPLElhQr80cMGJFM#grid" style="width:100%; height:400px;"></iframe>`;
     }
-
-    document.getElementById("nav-list").classList.remove("show");
-  }
-
-  // QRコードスキャナー
-  let html5QrCode;
-  function startQrScanner() {
-    const qrReader = document.getElementById("qr-reader");
-    qrReader.style.display = "block";
-    if (html5QrCode) return;
-    html5QrCode = new Html5Qrcode("qr-reader");
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        document.getElementById("password-input").value = decodedText;
-        checkPassword();
-      },
-      () => {}
-    ).catch(err => alert("カメラの起動に失敗しました：" + err));
-  }
-
-  function stopQrScanner() {
-    if (html5QrCode) {
-      html5QrCode.stop().then(() => {
-        html5QrCode.clear();
-        html5QrCode = null;
-        document.getElementById("qr-reader").style.display = "none";
-      }).catch(err => console.error(err));
-    } else {
-      document.getElementById("qr-reader").style.display = "none";
+      document.getElementById("nav-list").classList.remove("show");
     }
-  }
 
-  // ------------------------------
-  // ヒーロー画像 自動＋ボタン切り替え機能
-  // ------------------------------
-  const heroImages = [
-    "https://rerizu2.github.io/oji-2025-1AI/文化祭.png",
-    "https://rerizu2.github.io/oji-2025-1AI/体育大会.png",
-    "https://rerizu2.github.io/oji-2025-1AI/校外学習.png",
-    "https://rerizu2.github.io/oji-2025-1AI/球技大会.png"
-  ];
-  let currentHeroIndex = 0;
-  const heroImgElement = document.querySelector(".hero-img");
+    // ヒーロー画像切り替え
+    const heroImages = [
+      "https://rerizu2.github.io/oji-2025-1AI/文化祭.png",
+      "https://rerizu2.github.io/oji-2025-1AI/体育大会.png",
+      "https://rerizu2.github.io/oji-2025-1AI/校外学習.png",
+      "https://rerizu2.github.io/oji-2025-1AI/球技大会.png"
+    ];
+    let currentHeroIndex = 0;
+    const heroImgElement = document.querySelector(".hero-img");
+    function showHeroImage(index) {
+      heroImgElement.style.opacity = 0;
+      setTimeout(() => {
+        heroImgElement.src = heroImages[index];
+        heroImgElement.style.opacity = 1;
+      }, 500);
+    }
+    function nextHero() {
+      currentHeroIndex = (currentHeroIndex + 1) % heroImages.length;
+      showHeroImage(currentHeroIndex);
+    }
+    function prevHero() {
+      currentHeroIndex = (currentHeroIndex - 1 + heroImages.length) % heroImages.length;
+      showHeroImage(currentHeroIndex);
+    }
+    setInterval(nextHero, 5000);
 
-  function showHeroImage(index) {
-    heroImgElement.style.opacity = 0;
-    setTimeout(() => {
-      heroImgElement.src = heroImages[index];
-      heroImgElement.style.opacity = 1;
-    }, 500);
-  }
+    // Ctrl + Dでソースをページ上に表示
+    document.addEventListener("keydown", function(e) {
+      if (e.ctrlKey && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        const sourceCode = document.documentElement.outerHTML;
+        const escaped = sourceCode.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+        const overlay = document.getElementById("sourceOverlay");
+        overlay.innerHTML = `<pre>${escaped}</pre>`;
+        overlay.style.display = "block";
+        document.getElementById("closeSource").style.display = "block";
+      }
+    });
 
-  function nextHero() {
-    currentHeroIndex = (currentHeroIndex + 1) % heroImages.length;
-    showHeroImage(currentHeroIndex);
-  }
-
-  function prevHero() {
-    currentHeroIndex = (currentHeroIndex - 1 + heroImages.length) % heroImages.length;
-    showHeroImage(currentHeroIndex);
-  }
-
-  // 自動スライド（6秒ごと）
-  setInterval(nextHero, 5000);
-</script>
+    function closeSource() {
+      document.getElementById("sourceOverlay").style.display = "none";
+      document.getElementById("closeSource").style.display = "none";
+    }
+  </script>
 </body>
 </html>
