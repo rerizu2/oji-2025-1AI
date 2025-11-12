@@ -3,137 +3,34 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>席替え＋出席番号編集機能付き</title>
+<title>席替えアプリケーションサイト</title>
 <style>
-  body {
-    font-family: "Yu Gothic", "Segoe UI", sans-serif;
-    background-color: #f0f3f9;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 40px;
-    padding: 30px;
-    flex-wrap: wrap;
-    position: relative;
-  }
-  #viewSourceBtn {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 8px 14px;
-    font-size: 0.95em;
-    background-color: #1976d2;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    z-index: 1000;
-  }
-  #viewSourceBtn:hover { background-color: #1565c0; }
-
-  .seating-container {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 25px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    width: 600px;
-    text-align: center;
-  }
-  .control-panel {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  select {
-    padding: 6px 10px;
-    font-size: 1em;
-    border-radius: 6px;
-    border: 1px solid #888;
-  }
-  button {
-    padding: 10px 20px;
-    font-size: 1.1em;
-    background: linear-gradient(180deg, #e0e0e0, #bdbdbd);
-    border: 2px solid #888;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-    box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-  }
-  button:hover { background: linear-gradient(180deg, #f0f0f0, #d0d0d0); }
-  .teacher {
-    text-align: center;
-    font-weight: bold;
-    padding: 10px;
-    border: 2px solid #333;
-    background-color: #e1f0ff;
-    border-radius: 6px;
-    margin-bottom: 15px;
-  }
-  .seating { display: flex; flex-direction: column; gap: 12px; }
-  .row { display: flex; justify-content: center; gap: 10px; }
-  .seat {
-    width: 90px;
-    height: 60px;
-    background-color: white;
-    border: 1px solid #555;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    transition: transform 0.25s ease, background-color 0.25s ease;
-    font-size: 0.95em;
-  }
-  .seat.animate { transform: translateY(-6px) rotate(4deg); }
-  .seat.fixed { background-color: #d6f5ff; font-weight: bold; }
-  .footer { margin-top: 20px; font-size: 0.9em; color: #666; }
-  .table-container {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 25px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    width: 450px;
-  }
-  table { border-collapse: collapse; width: 100%; background: white; border-radius: 10px; overflow: hidden; }
-  th, td { border: 1px solid #ccc; padding: 10px 14px; text-align: center; }
-  th { background-color: #e1f0ff; font-weight: bold; }
-  tr:nth-child(even) { background-color: #f9f9f9; }
-  tr.checked { background-color: #d7f8d7 !important; }
-  input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
-  caption { font-size: 1.4em; font-weight: bold; margin-bottom: 10px; }
-  .button-group { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
-  .status { margin-top: 10px; color: #444; font-size: 0.95em; }
-
-  /* モーダル用 */
-  #sourceModal {
-    display: none;
-    position: fixed;
-    z-index: 999;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.7);
-  }
-  #sourceModalContent {
-    background-color: #fff;
-    margin: 50px auto;
-    padding: 20px;
-    width: 90%;
-    max-width: 900px;
-    border-radius: 10px;
-    white-space: pre-wrap;
-    overflow: auto;
-    max-height: 80vh;
-  }
-  #closeModal {
-    float: right;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 1.2em;
-  }
+  body { font-family:"Yu Gothic","Segoe UI",sans-serif; background:#f0f3f9; display:flex; justify-content:center; align-items:flex-start; gap:40px; padding:30px; flex-wrap:wrap; }
+  #viewSourceBtn{position:fixed;top:15px;right:15px;padding:8px 14px;font-size:0.9em;background:#1976d2;color:#fff;border:none;border-radius:6px;cursor:pointer;}
+  #viewSourceBtn:hover{background:#1565c0;}
+  .seating-container,.table-container{background:#fff;border-radius:10px;padding:25px;box-shadow:0 3px 10px rgba(0,0,0,0.1);}
+  .control-panel{display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:15px;flex-wrap:wrap;}
+  select,button,input{padding:6px 10px;font-size:1em;border-radius:6px;border:1px solid #888;}
+  button{background:linear-gradient(180deg,#e0e0e0,#bdbdbd);cursor:pointer;}
+  button:hover{background:linear-gradient(180deg,#f0f0f0,#d0d0d0);}
+  .teacher{text-align:center;font-weight:bold;padding:10px;border:2px solid #333;background:#e1f0ff;margin-bottom:10px;}
+  .row{display:flex;justify-content:center;gap:10px;margin-bottom:8px;}
+  .seat{width:90px;height:60px;background:#fff;border:1px solid #555;border-radius:6px;display:flex;align-items:center;justify-content:center;}
+  .seat.fixed{background:#d6f5ff;}
+  .seat input{width:80%;border:none;text-align:center;font-size:0.9em;}
+  table{border-collapse:collapse;width:100%;margin-top:10px;}
+  th,td{border:1px solid #ccc;padding:6px;text-align:center;}
+  th{background:#e1f0ff;}
+  tr.checked{background:#d7f8d7;}
+  input[type="checkbox"]{transform:scale(1.3);}
+  #miniSeating{margin-top:25px;display:flex;flex-direction:column;gap:8px;}
+  .miniRow{display:flex;justify-content:center;gap:8px;}
+  .miniSeat{width:55px;height:40px;border:1px solid #444;border-radius:6px;background:#fafafa;display:flex;justify-content:center;align-items:center;cursor:pointer;font-size:0.8em;transition:background 0.2s;}
+  .miniSeat:hover{background:#e0f7fa;}
+  .miniSeat.selected{background:#a5d6a7!important;}
+  #sourceModal{display:none;position:fixed;z-index:999;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.7);}
+  #sourceModalContent{background:#fff;margin:50px auto;padding:20px;width:90%;max-width:900px;border-radius:10px;white-space:pre-wrap;overflow:auto;max-height:80vh;}
+  #closeModal{float:right;cursor:pointer;font-weight:bold;font-size:1.2em;}
 </style>
 </head>
 <body>
@@ -148,110 +45,159 @@
 </div>
 
 <div class="seating-container">
-  <h1>席替えページ</h1>
+  <h2>席替えページ</h2>
   <div class="control-panel">
     <label for="shuffleCount">回数：</label>
     <select id="shuffleCount"></select>
     <button id="shuffleBtn">席替え</button>
+    <button id="saveBtn">💾 データ保存</button>
   </div>
-
   <div class="teacher">教卓</div>
-  <div class="seating" id="seatingArea"></div>
-  <div class="footer">チェックされた生徒は前列固定になります。</div>
-  <div class="status" id="statusText"></div>
+  <div id="seatingArea"></div>
+  <p id="statusText" style="text-align:center;color:#555;font-size:0.9em;margin-top:5px;"></p>
 </div>
 
 <div class="table-container">
+  <h3>出席番号一覧＋ミニ座席</h3>
   <table id="studentTable">
-    <caption>出席番号一覧</caption>
-    <thead>
-      <tr>
-        <th>出席番号と名前</th>
-        <th>出席番号</th>
-        <th>名前</th>
-        <th>チェック</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th>出席番号と名前</th>
+      <th>出席番号</th>
+      <th>名前</th>
+      <th>チェック</th>
+    </tr></thead>
     <tbody></tbody>
   </table>
-  <div class="button-group">
-    <button id="addRowBtn">＋ 枠を追加</button>
+  <div style="text-align:center;margin-top:10px;">
+    <button id="addRowBtn">＋ 行を追加</button>
   </div>
+  <div id="miniSeating"></div>
 </div>
 
 <script>
-/* --- ソース表示 --- */
-const viewBtn = document.getElementById("viewSourceBtn");
-const modal = document.getElementById("sourceModal");
-const closeModal = document.getElementById("closeModal");
-const sourceCode = document.getElementById("sourceCode");
+/* ===== ソース表示 ===== */
+const viewBtn=document.getElementById("viewSourceBtn");
+const modal=document.getElementById("sourceModal");
+const closeModal=document.getElementById("closeModal");
+const sourceCode=document.getElementById("sourceCode");
+viewBtn.addEventListener("click",()=>{sourceCode.textContent=document.documentElement.outerHTML;modal.style.display="block";});
+closeModal.addEventListener("click",()=>modal.style.display="none");
+window.addEventListener("click",e=>{if(e.target==modal)modal.style.display="none";});
 
-viewBtn.addEventListener("click",()=>{
-  sourceCode.textContent = document.documentElement.outerHTML;
-  modal.style.display = "block";
-});
-closeModal.addEventListener("click",()=>{modal.style.display="none";});
-window.addEventListener("click",(e)=>{if(e.target==modal) modal.style.display="none";});
+/* ===== データ ===== */
+const seatLayout=[4,6,6,6,6,6,4];
+const tbody=document.querySelector("#studentTable tbody");
+const seatingArea=document.getElementById("seatingArea");
+const hiddenSeats=new Set();
+const fixedStudents=new Set();
 
-/* --- 席替えプログラム --- */
-const select = document.getElementById("shuffleCount");
-for(let i=1;i<=100;i++){
-  const opt=document.createElement("option");
-  opt.value=i;
-  opt.textContent=`${i}回`;
-  select.appendChild(opt);
-}
-
-const defaultStudents = [
-  "秋山","池田","一政","今中","遠地","岡田","岡村","小川","柏木","神谷",
-  "岸上","北野","幸元","小走","清水","髙橋","竹林","竹村","田中","中井",
-  "中村","西嶌","西野","延原","濱脇","比嘉","本田","松山","南","森川",
-  "森中","山崎","山本","吉村","米田"
-];
-const tbody = document.querySelector("#studentTable tbody");
-const seatingArea = document.getElementById("seatingArea");
-const shuffleBtn = document.getElementById("shuffleBtn");
-const statusText = document.getElementById("statusText");
-const fixedStudents = new Set();
-
-function addRow(num, name = "") {
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>${num} ${name}</td>
-    <td contenteditable="true">${num}</td>
-    <td contenteditable="true">${name}</td>
-    <td><input type="checkbox"></td>
-  `;
-  const checkbox = tr.querySelector("input");
-  checkbox.addEventListener("change", () => {
-    tr.classList.toggle("checked", checkbox.checked);
-    const studentName = tr.children[2].textContent.trim();
-    if (checkbox.checked) fixedStudents.add(studentName);
-    else fixedStudents.delete(studentName);
+/* ===== 出席表作成 ===== */
+function createRow(num="",name="",checked=false){
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td class="merged">${num} ${name}</td>
+                <td contenteditable="true">${num}</td>
+                <td contenteditable="true">${name}</td>
+                <td><input type="checkbox" ${checked?"checked":""}></td>`;
+  const updateMerged=()=>{
+    const n=tr.children[1].textContent.trim();
+    const nm=tr.children[2].textContent.trim();
+    tr.children[0].textContent=`${n} ${nm}`.trim();
+  };
+  tr.children[1].addEventListener("input",updateMerged);
+  tr.children[2].addEventListener("input",updateMerged);
+  const checkbox=tr.querySelector("input");
+  checkbox.addEventListener("change",()=>{
+    tr.classList.toggle("checked",checkbox.checked);
+    const nameVal=tr.children[2].textContent.trim();
+    if(checkbox.checked)fixedStudents.add(nameVal);
+    else fixedStudents.delete(nameVal);
   });
-  tr.children[1].addEventListener("input", update);
-  tr.children[2].addEventListener("input", update);
-  function update(){
-    const num = tr.children[1].textContent.trim();
-    const name = tr.children[2].textContent.trim();
-    tr.children[0].textContent = `${num} ${name}`;
-  }
+  if(checked)tr.classList.add("checked");
   tbody.appendChild(tr);
 }
-defaultStudents.forEach((n,i)=>addRow(i+1,n));
-document.getElementById("addRowBtn").addEventListener("click",()=>addRow(tbody.rows.length+1,""));
 
-function getCurrentStudentList(){
-  const list=[];
+/* ===== 席替え描画 ===== */
+function renderSeats(students,doShuffle=false){
+  seatingArea.innerHTML="";
+  students = students.filter(s => s.name !== "");
+  let visibleSeats=[];
+  seatLayout.forEach((count,rowIndex)=>{
+    for(let i=0;i<count;i++){
+      const key=`${rowIndex}-${i}`;
+      if(!hiddenSeats.has(key))visibleSeats.push({rowIndex,col:i});
+    }
+  });
+  if(doShuffle)students=shuffle(students);
+  const checked = students.filter(s => fixedStudents.has(s.name));
+  const others = students.filter(s => !fixedStudents.has(s.name));
+  const ordered = [...checked, ...others];
+  visibleSeats.forEach((pos,idx)=>{
+    const row=getOrCreateRow(pos.rowIndex);
+    const s=ordered[idx];
+    const seat=createSeat(pos,s);
+    if(s && fixedStudents.has(s.name)) seat.classList.add("fixed");
+    row.appendChild(seat);
+  });
+}
+function getOrCreateRow(rowIndex){
+  let row=seatingArea.querySelector(`.row[data-row="${rowIndex}"]`);
+  if(!row){
+    row=document.createElement("div");
+    row.className="row";
+    row.dataset.row=rowIndex;
+    seatingArea.appendChild(row);
+  }
+  return row;
+}
+function createSeat(pos,student){
+  const seat=document.createElement("div");
+  seat.className="seat";
+  seat.dataset.row=pos.rowIndex;
+  seat.dataset.col=pos.col;
+  seat.textContent=student ? `${student.num} ${student.name}` : "";
+  return seat;
+}
+
+/* ===== ミニ座席 ===== */
+const miniContainer=document.getElementById("miniSeating");
+function renderMiniSeats(){
+  miniContainer.innerHTML="";
+  seatLayout.forEach((count,rowIndex)=>{
+    const row=document.createElement("div");
+    row.className="miniRow";
+    for(let i=0;i<count;i++){
+      const seat=document.createElement("div");
+      seat.className="miniSeat";
+      const key=`${rowIndex}-${i}`;
+      if(hiddenSeats.has(key))seat.classList.add("selected");
+      seat.addEventListener("click",()=>{
+        const selected=seat.classList.toggle("selected");
+        if(selected)hiddenSeats.add(key);else hiddenSeats.delete(key);
+        renderSeats(getCurrentStudents());
+      });
+      row.appendChild(seat);
+    }
+    miniContainer.appendChild(row);
+  });
+}
+renderMiniSeats();
+
+/* ===== 席替え処理 ===== */
+const shuffleCount=document.getElementById("shuffleCount");
+for(let i=1;i<=100;i++){const opt=document.createElement("option");opt.value=i;opt.textContent=`${i}回`;shuffleCount.appendChild(opt);}
+const shuffleBtn=document.getElementById("shuffleBtn");
+const statusText=document.getElementById("statusText");
+
+function getCurrentStudents(){
+  const arr=[];
   tbody.querySelectorAll("tr").forEach(tr=>{
     const num=tr.children[1].textContent.trim();
     const name=tr.children[2].textContent.trim();
-    if(name||num) list.push({num,name});
+    const checked=tr.querySelector("input").checked;
+    if(num || name)arr.push({num,name,checked});
   });
-  return list;
+  return arr;
 }
-
-const seatLayout=[3,6,6,6,6,6,2];
 function shuffle(arr){
   const a=arr.slice();
   for(let i=a.length-1;i>0;i--){
@@ -260,68 +206,52 @@ function shuffle(arr){
   }
   return a;
 }
-function renderSeats(studentList,checkedSet,doShuffle=false){
-  seatingArea.innerHTML="";
-  const checked=Array.from(checkedSet);
-  const nonChecked=studentList.filter(s=>!checkedSet.has(s.name));
-  let fixedRowCount=0,fixedSeatCapacity=0;
-  if(checked.length>=1&&checked.length<=3){fixedRowCount=1;fixedSeatCapacity=seatLayout[0];}
-  else if(checked.length>=4&&checked.length<=9){fixedRowCount=2;fixedSeatCapacity=seatLayout[0]+seatLayout[1];}
-  let fixedList=[],remainingList=[];
-  if(fixedRowCount>0&&checked.length>0){
-    let checkedList=studentList.filter(s=>checkedSet.has(s.name));
-    if(doShuffle)checkedList=shuffle(checkedList);
-    fixedList=checkedList.slice(0,fixedSeatCapacity);
-    const rest=checkedList.slice(fixedSeatCapacity);
-    remainingList=doShuffle?shuffle([...nonChecked,...rest]):[...nonChecked,...rest];
-  }else remainingList=doShuffle?shuffle(studentList):studentList.slice();
-  let seatIndex=0;
-  seatLayout.forEach((count,rowIndex)=>{
-    const row=document.createElement("div");
-    row.className="row";
-    for(let i=0;i<count;i++){
-      const seat=document.createElement("div");
-      seat.className="seat";
-      let student=null,isFixed=false;
-      if(rowIndex<fixedRowCount&&fixedList.length>0){
-        student=fixedList.shift();isFixed=true;
-      }else if(remainingList.length>0){
-        student=remainingList.shift();
-        if(checkedSet.has(student.name))isFixed=true;
-      }else student={num:"-",name:`空席${seatIndex+1}`};
-      seat.textContent=`${student.num} ${student.name}`;
-      if(isFixed)seat.classList.add("fixed");
-      row.appendChild(seat);
-      seatIndex++;
-    }
-    seatingArea.appendChild(row);
-  });
-}
-
 function performShuffles(times){
-  if(times<=0)return;
-  let current=0;const delay=300;
+  let current=0;
   statusText.textContent=`席替え中：1/${times}`;
   function step(){
-    renderSeats(getCurrentStudentList(),fixedStudents,true);
+    renderSeats(getCurrentStudents(),true);
     current++;
     statusText.textContent=`席替え中：${current}/${times}`;
-    if(current<times)setTimeout(step,delay);
-    else{
-      setTimeout(()=>{
-        statusText.textContent=`席替え完了（${times}回）`;
-        setTimeout(()=>statusText.textContent="",1200);
-      },200);
-    }
+    if(current<times)setTimeout(step,250);
+    else statusText.textContent=`席替え完了（${times}回）`;
   }
   step();
 }
 shuffleBtn.addEventListener("click",()=>{
-  const times=parseInt(select.value,10)||1;
+  const times=parseInt(shuffleCount.value,10)||1;
   performShuffles(times);
 });
-renderSeats(getCurrentStudentList(),fixedStudents,false);
-</script>
+document.getElementById("addRowBtn").addEventListener("click",()=>createRow(tbody.rows.length+1,""));
 
+/* ===== データ保存 ===== */
+const saveBtn=document.getElementById("saveBtn");
+saveBtn.addEventListener("click",()=>{
+  const data={
+    students:getCurrentStudents(),
+    hidden:Array.from(hiddenSeats)
+  };
+  localStorage.setItem("seatingData",JSON.stringify(data));
+  statusText.textContent="💾 データを保存しました";
+  setTimeout(()=>statusText.textContent="",2000);
+});
+
+/* ===== データ読み込み ===== */
+window.addEventListener("DOMContentLoaded",()=>{
+  const saved=localStorage.getItem("seatingData");
+  if(saved){
+    const data=JSON.parse(saved);
+    tbody.innerHTML="";
+    data.students.forEach(s=>createRow(s.num,s.name,s.checked));
+    hiddenSeats.clear();
+    data.hidden.forEach(h=>hiddenSeats.add(h));
+    renderMiniSeats();
+    renderSeats(getCurrentStudents());
+  }else{
+    for(let i=1;i<=34;i++)createRow(i,"");
+    renderSeats(getCurrentStudents());
+  }
+});
+</script>
 </body>
 </html>
