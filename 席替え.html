@@ -3,45 +3,72 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>席替えアプリケーションサイト</title>
+<title>席替え＋名前入力ボックス統合版</title>
 <style>
-  body { font-family:"Yu Gothic","Segoe UI",sans-serif; background:#f0f3f9; display:flex; justify-content:center; align-items:flex-start; gap:40px; padding:30px; flex-wrap:wrap; }
-  #viewSourceBtn{position:fixed;top:15px;right:15px;padding:8px 14px;font-size:0.9em;background:#1976d2;color:#fff;border:none;border-radius:6px;cursor:pointer;}
-  #viewSourceBtn:hover{background:#1565c0;}
-  .seating-container,.table-container{background:#fff;border-radius:10px;padding:25px;box-shadow:0 3px 10px rgba(0,0,0,0.1);}
-  .control-panel{display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:15px;flex-wrap:wrap;}
-  select,button,input{padding:6px 10px;font-size:1em;border-radius:6px;border:1px solid #888;}
-  button{background:linear-gradient(180deg,#e0e0e0,#bdbdbd);cursor:pointer;}
-  button:hover{background:linear-gradient(180deg,#f0f0f0,#d0d0d0);}
-  .teacher{text-align:center;font-weight:bold;padding:10px;border:2px solid #333;background:#e1f0ff;margin-bottom:10px;}
-  .row{display:flex;justify-content:center;gap:10px;margin-bottom:8px;}
-  .seat{width:90px;height:60px;background:#fff;border:1px solid #555;border-radius:6px;display:flex;align-items:center;justify-content:center;}
-  .seat.fixed{background:#d6f5ff;}
-  .seat input{width:80%;border:none;text-align:center;font-size:0.9em;}
-  table{border-collapse:collapse;width:100%;margin-top:10px;}
-  th,td{border:1px solid #ccc;padding:6px;text-align:center;}
-  th{background:#e1f0ff;}
-  tr.checked{background:#d7f8d7;}
-  input[type="checkbox"]{transform:scale(1.3);}
-  #miniSeating{margin-top:25px;display:flex;flex-direction:column;gap:8px;}
-  .miniRow{display:flex;justify-content:center;gap:8px;}
-  .miniSeat{width:55px;height:40px;border:1px solid #444;border-radius:6px;background:#fafafa;display:flex;justify-content:center;align-items:center;cursor:pointer;font-size:0.8em;transition:background 0.2s;}
-  .miniSeat:hover{background:#e0f7fa;}
-  .miniSeat.selected{background:#a5d6a7!important;}
-  #sourceModal{display:none;position:fixed;z-index:999;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.7);}
-  #sourceModalContent{background:#fff;margin:50px auto;padding:20px;width:90%;max-width:900px;border-radius:10px;white-space:pre-wrap;overflow:auto;max-height:80vh;}
-  #closeModal{float:right;cursor:pointer;font-weight:bold;font-size:1.2em;}
+body {
+  font-family: "Yu Gothic", "Segoe UI", sans-serif;
+  background: #f0f3f9;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  padding: 30px;
+  flex-wrap: wrap;
+}
+#viewSourceBtn {
+  position: fixed; top: 15px; right: 15px;
+  padding: 8px 14px; font-size: 0.9em;
+  background: #1976d2; color: #fff; border: none;
+  border-radius: 6px; cursor: pointer;
+}
+#viewSourceBtn:hover { background: #1565c0; }
+.seating-container, .table-container, .textarea-container {
+  background: #fff;
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+.control-panel {
+  display: flex; justify-content: center; align-items: center;
+  gap: 10px; margin-bottom: 15px; flex-wrap: wrap;
+}
+select, button, input {
+  padding: 6px 10px; font-size: 1em; border-radius: 6px; border: 1px solid #888;
+}
+button {
+  background: linear-gradient(180deg, #e0e0e0, #bdbdbd);
+  cursor: pointer;
+}
+button:hover { background: linear-gradient(180deg, #f0f0f0, #d0d0d0); }
+textarea {
+  width: 200px; height: 200px; font-size: 15px;
+  padding: 8px; border-radius: 6px; border: 1px solid #bbb; resize: none;
+}
+.teacher { text-align:center; font-weight:bold; padding:10px; border:2px solid #333; background:#e1f0ff; margin-bottom:10px; }
+.row { display: flex; justify-content: center; gap: 10px; margin-bottom: 8px; }
+.seat { width: 90px; height: 60px; background:#fff; border:1px solid #555; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-direction:column; }
+.seat.fixed { background:#d6f5ff; }
+.seat input { width: 80%; border:none; text-align:center; font-size:0.9em; }
+table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+th, td { border:1px solid #ccc; padding:6px; text-align:center; }
+th { background:#e1f0ff; }
+tr.checked { background:#d7f8d7; }
+input[type="checkbox"] { transform: scale(1.3); }
+#miniSeating { margin-top: 25px; display:flex; flex-direction:column; gap:8px; }
+.miniRow { display:flex; justify-content:center; gap:8px; }
+.miniSeat { width:55px; height:40px; border:1px solid #444; border-radius:6px; background:#fafafa; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:0.8em; transition: background 0.2s; }
+.miniSeat:hover { background:#e0f7fa; }
+.miniSeat.selected { background:#a5d6a7 !important; }
 </style>
 </head>
 <body>
 
 <button id="viewSourceBtn">ソース表示</button>
 
-<div id="sourceModal">
-  <div id="sourceModalContent">
-    <span id="closeModal">✖</span>
-    <pre id="sourceCode"></pre>
-  </div>
+<div class="textarea-container">
+  <h2>名前入力ボックス</h2>
+  <textarea id="nameInput" placeholder="ここに名前を改行して入力"></textarea>
+  <button id="addNamesBtn">追加</button>
 </div>
 
 <div class="seating-container">
@@ -51,7 +78,7 @@
     <select id="shuffleCount"></select>
     <button id="shuffleBtn">席替え</button>
     <button id="saveBtn">💾 データ保存</button>
-    <button id="resetBtn">🗑 データ削除（初期化）</button>
+    <button id="resetBtn">🗑 データ削除</button>
   </div>
   <div class="teacher">教卓</div>
   <div id="seatingArea"></div>
@@ -61,119 +88,89 @@
 <div class="table-container">
   <h3>出席番号一覧＋ミニ座席</h3>
   <table id="studentTable">
-    <thead><tr>
-      <th>出席番号と名前</th>
-      <th>出席番号</th>
-      <th>名前</th>
-      <th>チェック</th>
-    </tr></thead>
+    <thead>
+      <tr><th>出席番号と名前</th><th>出席番号</th><th>名前</th><th>チェック</th></tr>
+    </thead>
     <tbody></tbody>
   </table>
-  <div style="text-align:center;margin-top:10px;">
-    <button id="addRowBtn">＋ 行を追加</button>
-  </div>
+  <div style="text-align:center;margin-top:10px;"><button id="addRowBtn">＋ 行を追加</button></div>
   <div id="miniSeating"></div>
 </div>
 
 <script>
 /* ===== ソース表示 ===== */
-const viewBtn=document.getElementById("viewSourceBtn");
-const modal=document.getElementById("sourceModal");
-const closeModal=document.getElementById("closeModal");
-const sourceCode=document.getElementById("sourceCode");
-viewBtn.addEventListener("click",()=>{sourceCode.textContent=document.documentElement.outerHTML;modal.style.display="block";});
-closeModal.addEventListener("click",()=>modal.style.display="none");
-window.addEventListener("click",e=>{if(e.target==modal)modal.style.display="none";});
+const viewBtn = document.getElementById("viewSourceBtn");
+viewBtn.addEventListener("click", () => { alert("ソース表示省略"); });
 
 /* ===== データ ===== */
-const seatLayout=[6,6,6,6,6,6,6]; // 7列×6席
-const tbody=document.querySelector("#studentTable tbody");
-const seatingArea=document.getElementById("seatingArea");
-const hiddenSeats=new Set();
-const fixedStudents=new Set();
+const seatLayout = [6,6,6,6,6,6,6];
+const tbody = document.querySelector("#studentTable tbody");
+const seatingArea = document.getElementById("seatingArea");
+const hiddenSeats = new Set();
+const fixedStudents = new Set();
 
 /* ===== 出席表作成 ===== */
-function createRow(num="",name="",checked=false){
-  const tr=document.createElement("tr");
-  tr.innerHTML=`<td class="merged">${num} ${name}</td>
-                <td contenteditable="true">${num}</td>
-                <td contenteditable="true">${name}</td>
-                <td><input type="checkbox" ${checked?"checked":""}></td>`;
-  const updateMerged=()=>{
-    const n=tr.children[1].textContent.trim();
-    const nm=tr.children[2].textContent.trim();
-    tr.children[0].textContent=`${n} ${nm}`.trim();
-  };
+function createRow(num = "", name = "", checked=false) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="merged">${num} ${name}</td>
+    <td contenteditable="true">${num}</td>
+    <td contenteditable="true">${name}</td>
+    <td><input type="checkbox" ${checked?"checked":""}></td>`;
+  const updateMerged = ()=>{ tr.children[0].textContent = `${tr.children[1].textContent.trim()} ${tr.children[2].textContent.trim()}`.trim(); };
   tr.children[1].addEventListener("input",updateMerged);
   tr.children[2].addEventListener("input",updateMerged);
-  const checkbox=tr.querySelector("input");
-  checkbox.addEventListener("change",()=>{
+
+  tr.children[2].addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); document.execCommand("insertHTML",false,"\n"); }});
+  tr.children[2].addEventListener("input", ()=>{
+    const text = tr.children[2].textContent;
+    const lines = text.split(/\n|<br>|↵/).map(s=>s.trim()).filter(Boolean);
+    if(lines.length>1){
+      tr.children[2].textContent = lines[0];
+      updateMerged();
+      for(let i=1;i<lines.length;i++){
+        let next = tr.nextElementSibling;
+        if(!next){ createRow(tbody.rows.length+1,""); next=tr.nextElementSibling; }
+        next.children[2].textContent = lines[i];
+        const numVal = next.children[1].textContent.trim();
+        next.children[0].textContent = `${numVal} ${lines[i]}`.trim();
+      }
+    }
+  });
+
+  const checkbox = tr.querySelector("input");
+  checkbox.addEventListener("change", ()=>{
     tr.classList.toggle("checked",checkbox.checked);
-    const nameVal=tr.children[2].textContent.trim();
-    if(checkbox.checked)fixedStudents.add(nameVal);
+    const nameVal = tr.children[2].textContent.trim();
+    if(checkbox.checked) fixedStudents.add(nameVal);
     else fixedStudents.delete(nameVal);
   });
-  if(checked)tr.classList.add("checked");
+  if(checked) tr.classList.add("checked");
+
   tbody.appendChild(tr);
 }
 
-/* ===== 席替え描画 ===== */
-function renderSeats(students,doShuffle=false){
-  seatingArea.innerHTML="";
-  students = students.filter(s => s.name !== ""); // 空白除外
-  let visibleSeats=[];
-  seatLayout.forEach((count,rowIndex)=>{
-    for(let i=0;i<count;i++){
-      const key=`${rowIndex}-${i}`;
-      if(!hiddenSeats.has(key))visibleSeats.push({rowIndex,col:i});
-    }
-  });
-  if(doShuffle)students=shuffle(students);
-  const checked = students.filter(s => fixedStudents.has(s.name));
-  const others = students.filter(s => !fixedStudents.has(s.name));
-  const ordered = [...checked, ...others];
-  visibleSeats.forEach((pos,idx)=>{
-    const row=getOrCreateRow(pos.rowIndex);
-    const s=ordered[idx];
-    const seat=createSeat(pos,s);
-    if(s && fixedStudents.has(s.name)) seat.classList.add("fixed");
-    row.appendChild(seat);
-  });
-}
-function getOrCreateRow(rowIndex){
-  let row=seatingArea.querySelector(`.row[data-row="${rowIndex}"]`);
-  if(!row){
-    row=document.createElement("div");
-    row.className="row";
-    row.dataset.row=rowIndex;
-    seatingArea.appendChild(row);
-  }
-  return row;
-}
-function createSeat(pos,student){
-  const seat=document.createElement("div");
-  seat.className="seat";
-  seat.dataset.row=pos.rowIndex;
-  seat.dataset.col=pos.col;
-  seat.textContent=student ? `${student.num} ${student.name}` : "";
-  return seat;
-}
+/* ===== textarea から名前追加 ===== */
+document.getElementById("addNamesBtn").addEventListener("click", ()=>{
+  const names = document.getElementById("nameInput").value.split("\n");
+  tbody.innerHTML = "";
+  names.forEach((n,i)=>createRow(i+1,n));
+  renderSeats(getCurrentStudents());
+});
 
 /* ===== ミニ座席 ===== */
-const miniContainer=document.getElementById("miniSeating");
-function renderMiniSeats(){
+const miniContainer = document.getElementById("miniSeating");
+function renderMiniSeats() {
   miniContainer.innerHTML="";
   seatLayout.forEach((count,rowIndex)=>{
-    const row=document.createElement("div");
-    row.className="miniRow";
+    const row=document.createElement("div"); row.className="miniRow";
     for(let i=0;i<count;i++){
       const seat=document.createElement("div");
       seat.className="miniSeat";
-      const key=`${rowIndex}-${i}`;
-      if(hiddenSeats.has(key))seat.classList.add("selected");
-      seat.addEventListener("click",()=>{
-        const selected=seat.classList.toggle("selected");
-        if(selected)hiddenSeats.add(key);else hiddenSeats.delete(key);
+      const key = `${rowIndex}-${i}`;
+      if(hiddenSeats.has(key)) seat.classList.add("selected");
+      seat.addEventListener("click", ()=>{
+        const sel = seat.classList.toggle("selected");
+        if(sel) hiddenSeats.add(key); else hiddenSeats.delete(key);
         renderSeats(getCurrentStudents());
       });
       row.appendChild(seat);
@@ -183,87 +180,90 @@ function renderMiniSeats(){
 }
 renderMiniSeats();
 
+/* ===== 席描画 ===== */
+function renderSeats(students, doShuffle=false){
+  seatingArea.innerHTML="";
+  students = students.filter(s=>s.name!=="");
+  let visibleSeats = [];
+  seatLayout.forEach((count,rowIndex)=>{ for(let i=0;i<count;i++){ const key=`${rowIndex}-${i}`; if(!hiddenSeats.has(key)) visibleSeats.push({rowIndex,col:i}); }});
+  if(doShuffle) students = shuffle(students);
+  const checked = students.filter(s=>fixedStudents.has(s.name));
+  const others = students.filter(s=>!fixedStudents.has(s.name));
+  const ordered = [...checked,...others];
+  visibleSeats.forEach((pos,idx)=>{
+    const row=getOrCreateRow(pos.rowIndex);
+    const s = ordered[idx];
+    const seat = createSeat(pos,s);
+    if(s && fixedStudents.has(s.name)) seat.classList.add("fixed");
+    row.appendChild(seat);
+  });
+}
+function getOrCreateRow(rowIndex){
+  let row = seatingArea.querySelector(`.row[data-row="${rowIndex}"]`);
+  if(!row){ row=document.createElement("div"); row.className="row"; row.dataset.row=rowIndex; seatingArea.appendChild(row);}
+  return row;
+}
+function createSeat(pos,student){
+  const seat=document.createElement("div");
+  seat.className="seat"; seat.dataset.row=pos.rowIndex; seat.dataset.col=pos.col;
+  if(student){
+    const numInput=document.createElement("input"); numInput.value=student.num; numInput.readOnly=true; numInput.style.width="30%"; numInput.style.marginRight="2px";
+    const nameInput=document.createElement("input"); nameInput.value=student.name; nameInput.style.width="65%";
+    nameInput.addEventListener("input",()=>{ student.name=nameInput.value; renderMiniSeats(); });
+    seat.appendChild(numInput); seat.appendChild(nameInput);
+    if(fixedStudents.has(student.name)) seat.classList.add("fixed");
+  }
+  return seat;
+}
+
 /* ===== 席替え処理 ===== */
 const shuffleCount=document.getElementById("shuffleCount");
-for(let i=1;i<=100;i++){const opt=document.createElement("option");opt.value=i;opt.textContent=`${i}回`;shuffleCount.appendChild(opt);}
+for(let i=1;i<=100;i++){ const opt=document.createElement("option"); opt.value=i; opt.textContent=`${i}回`; shuffleCount.appendChild(opt);}
 const shuffleBtn=document.getElementById("shuffleBtn");
 const statusText=document.getElementById("statusText");
-
 function getCurrentStudents(){
   const arr=[];
   tbody.querySelectorAll("tr").forEach(tr=>{
     const num=tr.children[1].textContent.trim();
     const name=tr.children[2].textContent.trim();
     const checked=tr.querySelector("input").checked;
-    if(num || name)arr.push({num,name,checked});
+    if(num||name) arr.push({num,name,checked});
   });
   return arr;
 }
-function shuffle(arr){
-  const a=arr.slice();
-  for(let i=a.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
-  }
-  return a;
-}
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a;}
 function performShuffles(times){
   let current=0;
   statusText.textContent=`席替え中：1/${times}`;
-  function step(){
-    renderSeats(getCurrentStudents(),true);
-    current++;
-    statusText.textContent=`席替え中：${current}/${times}`;
-    if(current<times)setTimeout(step,250);
-    else statusText.textContent=`席替え完了（${times}回）`;
-  }
+  function step(){ renderSeats(getCurrentStudents(),true); current++; statusText.textContent=`席替え中：${current}/${times}`; if(current<times) setTimeout(step,250); else statusText.textContent=`席替え完了（${times}回）`; }
   step();
 }
-shuffleBtn.addEventListener("click",()=>{
-  const times=parseInt(shuffleCount.value,10)||1;
-  performShuffles(times);
-});
+shuffleBtn.addEventListener("click",()=>{ const times=parseInt(shuffleCount.value,10)||1; performShuffles(times); });
 document.getElementById("addRowBtn").addEventListener("click",()=>createRow(tbody.rows.length+1,""));
 
-/* ===== データ保存／削除 ===== */
+/* ===== 保存・初期化 ===== */
 const saveBtn=document.getElementById("saveBtn");
 const resetBtn=document.getElementById("resetBtn");
-
-saveBtn.addEventListener("click",()=>{
-  const data={students:getCurrentStudents(),hidden:Array.from(hiddenSeats)};
-  localStorage.setItem("seatingData",JSON.stringify(data));
-  statusText.textContent="💾 データを保存しました";
-  setTimeout(()=>statusText.textContent="",2000);
-});
-
+saveBtn.addEventListener("click",()=>{ const data={students:getCurrentStudents(),hidden:Array.from(hiddenSeats)}; localStorage.setItem("seatingData",JSON.stringify(data)); statusText.textContent="💾 データを保存しました"; setTimeout(()=>statusText.textContent="",2000); });
 resetBtn.addEventListener("click",()=>{
   if(confirm("本当にデータを削除して初期化しますか？")){
-    localStorage.removeItem("seatingData");
-    tbody.innerHTML="";
-    hiddenSeats.clear();
-    for(let i=1;i<=34;i++)createRow(i,"");
-    renderMiniSeats();
-    renderSeats(getCurrentStudents());
-    statusText.textContent="🗑 データを削除しました";
-    setTimeout(()=>statusText.textContent="",2000);
+    localStorage.removeItem("seatingData"); tbody.innerHTML=""; hiddenSeats.clear();
+    for(let i=1;i<=34;i++) createRow(i,"");
+    renderMiniSeats(); renderSeats(getCurrentStudents());
+    statusText.textContent="🗑 データを削除しました"; setTimeout(()=>statusText.textContent="",2000);
   }
 });
 
-/* ===== データ読み込み ===== */
+/* ===== 読み込み時 ===== */
 window.addEventListener("DOMContentLoaded",()=>{
-  const saved=localStorage.getItem("seatingData");
+  const saved = localStorage.getItem("seatingData");
   if(saved){
     const data=JSON.parse(saved);
     tbody.innerHTML="";
     data.students.forEach(s=>createRow(s.num,s.name,s.checked));
-    hiddenSeats.clear();
-    data.hidden.forEach(h=>hiddenSeats.add(h));
-    renderMiniSeats();
-    renderSeats(getCurrentStudents());
-  }else{
-    for(let i=1;i<=34;i++)createRow(i,"");
-    renderSeats(getCurrentStudents());
-  }
+    hiddenSeats.clear(); data.hidden.forEach(h=>hiddenSeats.add(h));
+    renderMiniSeats(); renderSeats(getCurrentStudents());
+  } else { for(let i=1;i<=34;i++) createRow(i,""); renderSeats(getCurrentStudents()); }
 });
 </script>
 </body>
