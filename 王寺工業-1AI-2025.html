@@ -131,6 +131,7 @@
           <li><a onclick="showPage('schedule')">時間割</a></li>
           <li><a onclick="showPage('calendar')">カレンダー</a></li>
           <li><a onclick="showPage('ibento')">イベント</a></li>
+          <li><a onclick="showPage('gakusyuu')">学習</a></li>
           <li><a onclick="showPage('test')">テスト</a></li>
           <li><a onclick="showPage('haihubutu')">配布プリント</a></li>
         </ul>
@@ -154,6 +155,7 @@
       <div class="card">
         <h2>📢 更新情報</h2>
         <ul>
+          <li>2025/11/15：学習アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報3.html">詳細はこちら</a></li>
           <li>2025/11/11：ポッキーの日アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報2.html">詳細はこちら</a></li>
           <li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
           <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
@@ -222,12 +224,13 @@
         <div class="card">
           <h2>📢 更新情報</h2>
           <ul>
-          　<li>2025/11/11：ポッキーの日アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報2.html">詳細はこちら</a></li>
-          　<li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
-            <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
-            <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
-            <li>2025/5/20：時間割更新</li>
-          </ul>
+          <li>2025/11/15：学習アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報3.html">詳細はこちら</a></li>
+          <li>2025/11/11：ポッキーの日アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報2.html">詳細はこちら</a></li>
+          <li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
+          <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
+          <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
+          <li>2025/5/20：時間割更新</li>
+        </ul>
         </div>
         <div class="card">
           <h1>このページについて</h1>
@@ -250,15 +253,27 @@
           width="${width}" height="800" frameborder="0" scrolling="no"></iframe>`;
     } else if (page === 'ibento') {
         content.innerHTML = `
-          <h1>席替えシステム</h1>
-          <iframe src="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" width="100%" height="800"></iframe>
-          <a href="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" class="button button-blue" target="_blank">
-            席替えシステムリンクはこちら
-          </a>
           <h1>近くなってきたイベント</h1>
           <div class="card" style="background-color:#fff3e0;">
             <p>現在はありません。</p>
           </div>`;
+      } else if (page === 'gakusyuu') {
+      content.innerHTML = `
+        <h1>席替えシステム</h1>
+          <iframe src="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" width="100%" height="800"></iframe>
+          <a href="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" class="button button-blue" target="_blank">
+            席替えシステムリンクはこちら
+          </a>
+          <h1>　</h1>
+        <h1>1IA専用VirtualVoice</h1>
+        <iframe
+ src="https://udify.app/chatbot/Fi5PD1a8XxhThlvE"
+ style="width: 100%; height: 100%; min-height: 700px"
+ frameborder="0"
+ allow="microphone">
+</iframe>
+          <a href="https://udify.app/chat/Fi5PD1a8XxhThlvE" class="button button-blue" target="_blank">1IA専用VirtualVoice</a>
+      `
       } else if (page === 'test') {
       content.innerHTML = `
         <h1>テスト範囲</h1>
