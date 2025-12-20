@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>王寺工業高校 1年A組 情報電子工学科ページ</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&family=Roboto+Mono&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Noto Sans JP', sans-serif; background-color: #f8f9fa; color: #333; }
@@ -79,6 +79,43 @@
       box-shadow: 0 6px 10px rgba(0,0,0,0.3);
     }
 
+    /* カウントダウン専用スタイル */
+    .countdown-card {
+      background: #0b0f1a;
+      color: #e6ffff;
+      border: 2px solid #00ffff;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-family: "Roboto Mono", "Consolas", monospace;
+      box-shadow: 0 0 15px rgba(0,255,255,0.2);
+    }
+    .countdown-card h3 {
+      color: #00ffff;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      font-size: 1.1em;
+      text-shadow: 0 0 5px rgba(0,255,255,0.5);
+    }
+    .cd-panel {
+      margin: 5px 0 15px 0;
+      padding: 10px;
+      background: rgba(0, 255, 255, 0.08);
+      border: 1px solid #00ffff;
+      border-radius: 8px;
+      font-size: 1.2em;
+    }
+    .time-glow {
+      color: #00ff9c;
+      font-weight: bold;
+      animation: glow 1.8s infinite alternate;
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 4px rgba(0,255,156,0.5); }
+      to   { text-shadow: 0 0 10px rgba(0,255,156,1); }
+    }
+
     /* フッター */
     footer { background: #222; color: white; text-align: center; padding: 15px 0; margin-top: 30px; }
 
@@ -103,6 +140,7 @@
       .menu-toggle { display: block; }
       .hero-text h1 { font-size: 32px; }
       .hero-text p { font-size: 18px; }
+      .cd-panel { font-size: 1.0em; }
     }
   </style>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -152,25 +190,7 @@
     </section>
 
     <section class="page-content" id="page-content">
-      <div class="card">
-        <h2>📢 更新情報</h2>
-        <ul>
-          <li>2025/11/15：学習アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報3.html">詳細はこちら</a></li>
-          <li>2025/11/11：ポッキーの日アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報2.html">詳細はこちら</a></li>
-          <li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
-          <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
-          <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
-          <li>2025/5/20：時間割更新</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h1>このページについて</h1>
-        <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料を一目で確認できます。ご意見は一政まで。</p>
-      </div>
-      <div class="card">
-        <h1>1IAホームページのQRコード</h1>
-        <img src="1IAホームページ-QRコード.png" alt="1AIページQRコード" width="300">
-      </div>
+      <!-- showPage('home') で中身が挿入されます -->
     </section>
 
     <footer>
@@ -178,7 +198,6 @@
     </footer>
   </div>
 
-  <!-- ソースコードオーバーレイ -->
   <div id="sourceOverlay"></div>
   <button id="closeSource" style="display:none;" onclick="closeSource()">✖ 閉じる</button>
 
@@ -201,6 +220,8 @@
       if (inputHash === hashedPassword) {
         document.getElementById("password-screen").style.display = "none";
         document.getElementById("main-content").style.display = "block";
+        showPage('home');
+        startTimers();
       } else {
         alert("パスワードが違います！");
       }
@@ -217,76 +238,128 @@
       return 300;
     }
 
+    // カウントダウンHTMLテンプレート（今年終了＋3学期終了）
+    const countdownHTML = `
+      <div class="countdown-card">
+        <h3>2025年が終わるまで</h3>
+        <div id="countdown-year" class="cd-panel time-glow">Loading...</div>
+        
+        <h3>2026.03.19 3学期終了まで</h3>
+        <div id="countdown-school" class="cd-panel time-glow">Loading...</div>
+        
+        <div id="current-time" class="cd-panel" style="font-size:0.85em; margin-bottom:5px;">現在時刻: Loading...</div>
+        <div id="elapsed-time" class="cd-panel" style="font-size:0.85em; margin-bottom:0;">今年の経過: Loading...</div>
+      </div>
+    `;
+
     function showPage(page) {
       const content = document.getElementById("page-content");
       if (page === 'home') {
-      content.innerHTML = `
-        <div class="card">
-          <h2>📢 更新情報</h2>
-          <ul>
-          <li>2025/11/15：学習アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報3.html">詳細はこちら</a></li>
-          <li>2025/11/11：ポッキーの日アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報2.html">詳細はこちら</a></li>
-          <li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
-          <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
-          <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
-          <li>2025/5/20：時間割更新</li>
-        </ul>
-        </div>
-        <div class="card">
-          <h1>このページについて</h1>
-          <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料を一目で確認できます。ご意見は一政まで。</p>
-        </div>
-        <div class="card">
-          <h1>1IAホームページのQRコード</h1>
-          <img src="1IAホームページ-QRコード.png" alt="1AIページQRコード" width="300">
-        </div>`;
-    } else if (page === 'schedule') {
-      const width = getResponsiveWidth();
-      content.innerHTML = `
-        <h1>時間割</h1>
-        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0try5rh29bXvIfaEkguZxKXkh4qunWPHoAbNkZOreHdqWw_nLAQjdhCZ90JxvPlEfPdnSZ39hcfSy/pubhtml?widget=true&amp;headers=false" width="${width}" height="300"></iframe>`;
-    } else if (page === 'calendar') {
-      const width = getResponsiveWidth();
-      content.innerHTML = `
-        <h1>カレンダー</h1>
-        <iframe src="https://calendar.google.com/calendar/embed?src=youmuyizheng%40gmail.com&ctz=Asia%2FTokyo" 
-          width="${width}" height="800" frameborder="0" scrolling="no"></iframe>`;
-    } else if (page === 'ibento') {
         content.innerHTML = `
-          <h1>近くなってきたイベント</h1>
-          <div class="card" style="background-color:#fff3e0;">
-            <p>現在はありません。</p>
+          <div class="card">
+            <h1>1IAホームページの閉鎖について</h1>
+            <p>1IAホームページは2026年3月19日を持ちまして閉鎖します。<br>新しいホームページは以下のものになります。<a href="https://rerizu2.github.io/oji-2026-2IA/%E7%8E%8B%E5%AF%BA%E5%B7%A5%E6%A5%AD-2IA-2026.html">2IAホームページ</a></p>
+          </div>
+          <div class="card">
+            <h2>📢 更新情報</h2>
+            <ul>
+              <li>2025/12/20：2025年最終アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報4.html">詳細はこちら</a></li>
+              <li>2025/11/15：学習アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報3.html">詳細はこちら</a></li>
+              <li>2025/11/11：ポッキーの日アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報2.html">詳細はこちら</a></li>
+              <li>2025/11/5：集合画像のスライドボタンを追加と集合写真の追加</li>
+              <li>2025/9/1：新学期用アップデート<a href="https://rerizu2.github.io/oji-2025-1AI/詳細アップデート情報.html">詳細はこちら</a></li>
+              <li>2025/5/24：プリント欄にGoogle Driveリンクを追加</li>
+              <li>2025/5/20：時間割更新</li>
+            </ul>
+          </div>
+          
+          ${countdownHTML}
+
+          <div class="card">
+            <h1>このページについて</h1>
+            <p>このページは1IAの皆様・保護者専用です。Google Chatで配信された資料を一目で確認できます。ご意見は一政まで。</p>
+          </div>
+          <div class="card">
+            <h1>1IAホームページのQRコード</h1>
+            <img src="1IAホームページ-QRコード.png" alt="1AIページQRコード" width="300">
           </div>`;
+      } else if (page === 'schedule') {
+        const width = getResponsiveWidth();
+        content.innerHTML = `<h1>時間割</h1><iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0try5rh29bXvIfaEkguZxKXkh4qunWPHoAbNkZOreHdqWw_nLAQjdhCZ90JxvPlEfPdnSZ39hcfSy/pubhtml?widget=true&amp;headers=false" width="${width}" height="300"></iframe>`;
+      } else if (page === 'calendar') {
+        const width = getResponsiveWidth();
+        content.innerHTML = `<h1>カレンダー</h1><iframe src="https://calendar.google.com/calendar/embed?src=youmuyizheng%40gmail.com&ctz=Asia%2FTokyo" width="${width}" height="800" frameborder="0" scrolling="no"></iframe>`;
+      } else if (page === 'ibento') {
+        content.innerHTML = `<h1>近くなってきたイベント</h1><div class="card" style="background-color:#fff3e0;"><p>現在はありません。</p></div>`;
       } else if (page === 'gakusyuu') {
-      content.innerHTML = `
-        <h1>席替えシステム</h1>
-          <iframe src="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" width="100%" height="800"></iframe>
-          <a href="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" class="button button-blue" target="_blank">
-            席替えシステムリンクはこちら
-          </a>
-          <h1>　</h1>
-        <h1>1IA専用VirtualVoice</h1>
-        <iframe
- src="https://udify.app/chatbot/Fi5PD1a8XxhThlvE"
- style="width: 100%; height: 100%; min-height: 700px"
- frameborder="0"
- allow="microphone">
-</iframe>
-          <a href="https://udify.app/chat/Fi5PD1a8XxhThlvE" class="button button-blue" target="_blank">1IA専用VirtualVoice</a>
-      `
+        content.innerHTML = `<h1>席替えシステム</h1><iframe src="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" width="100%" height="800"></iframe><a href="https://rerizu2.github.io/oji-2025-1AI/%E5%B8%AD%E6%9B%BF%E3%81%88.html" class="button button-blue" target="_blank">席替えシステムリンクはこちら</a><h1>　</h1><h1>1IA専用VirtualVoice</h1><iframe src="https://udify.app/chatbot/Fi5PD1a8XxhThlvE" style="width: 100%; height: 700px" frameborder="0" allow="microphone"></iframe><a href="https://udify.app/chat/Fi5PD1a8XxhThlvE" class="button button-blue" target="_blank">1IA専用VirtualVoice</a>`;
       } else if (page === 'test') {
-      content.innerHTML = `
-        <h1>テスト範囲</h1>
-        <p>現在はございません</p>`;
-    } else if (page === 'haihubutu') {
-      content.innerHTML = `
-        <h1>配布プリント</h1>
-        <iframe src="https://drive.google.com/embeddedfolderview?id=1UfqzRA8LqoqjK4_eUPLElhQr80cMGJFM#grid" style="width:100%; height:400px;"></iframe>`;
-    }
+        content.innerHTML = `<h1>テスト範囲</h1><p>現在はございません</p>`;
+      } else if (page === 'haihubutu') {
+        content.innerHTML = `<h1>配布プリント</h1><iframe src="https://drive.google.com/embeddedfolderview?id=1UfqzRA8LqoqjK4_eUPLElhQr80cMGJFM#grid" style="width:100%; height:400px;"></iframe>`;
+      }
       document.getElementById("nav-list").classList.remove("show");
     }
 
-    // ヒーロー画像切り替え
+    // --- タイマー処理 ---
+    function updateAllTimers() {
+      const now = new Date();
+      
+      // 1. 今年の終わり (2025/12/31 23:59:59)
+      const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      const diffYear = endOfYear - now;
+      const cyElem = document.getElementById('countdown-year');
+      if (cyElem) {
+        if (diffYear <= 0) { cyElem.textContent = 'ハッピーニューイヤー！'; }
+        else {
+          const d = Math.floor(diffYear / (1000 * 60 * 60 * 24));
+          const h = Math.floor((diffYear % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const m = Math.floor((diffYear % (1000 * 60 * 60)) / (1000 * 60));
+          const s = Math.floor((diffYear % (1000 * 60)) / 1000);
+          cyElem.textContent = `${d}d ${h}h ${m}m ${s}s`;
+        }
+      }
+
+      // 2. 3学期終了 (2026/03/19)
+      const targetSchool = new Date("2026-03-19T00:00:00");
+      const diffSchool = targetSchool - now;
+      const csElem = document.getElementById('countdown-school');
+      if (csElem) {
+        if (diffSchool <= 0) { csElem.textContent = '到達しました'; }
+        else {
+          const d = Math.floor(diffSchool / (1000 * 60 * 60 * 24));
+          const h = Math.floor((diffSchool % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const m = Math.floor((diffSchool % (1000 * 60 * 60)) / (1000 * 60));
+          const s = Math.floor((diffSchool % (1000 * 60)) / 1000);
+          csElem.textContent = `${d}d ${h}h ${m}m ${s}s`;
+        }
+      }
+
+      // 3. 現在時刻
+      const ctElem = document.getElementById('current-time');
+      if (ctElem) {
+        ctElem.textContent = `現在時刻: ` + now.toLocaleString('ja-JP', { hour12: false });
+      }
+
+      // 4. 今年の経過
+      const etElem = document.getElementById('elapsed-time');
+      if (etElem) {
+        const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+        const diffElapsed = now - start;
+        const d = Math.floor(diffElapsed / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diffElapsed % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((diffElapsed % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diffElapsed % (1000 * 60)) / 1000);
+        etElem.textContent = `今年の経過: ${d}d ${h}h ${m}m ${s}s`;
+      }
+    }
+
+    function startTimers() {
+      setInterval(updateAllTimers, 1000);
+      updateAllTimers();
+    }
+
+    // --- スライドショー ---
     const heroImages = [
       "https://rerizu2.github.io/oji-2025-1AI/文化祭.png",
       "https://rerizu2.github.io/oji-2025-1AI/体育大会.png",
@@ -294,25 +367,20 @@
       "https://rerizu2.github.io/oji-2025-1AI/球技大会.png"
     ];
     let currentHeroIndex = 0;
-    const heroImgElement = document.querySelector(".hero-img");
     function showHeroImage(index) {
+      const heroImgElement = document.querySelector(".hero-img");
+      if(!heroImgElement) return;
       heroImgElement.style.opacity = 0;
       setTimeout(() => {
         heroImgElement.src = heroImages[index];
         heroImgElement.style.opacity = 1;
       }, 500);
     }
-    function nextHero() {
-      currentHeroIndex = (currentHeroIndex + 1) % heroImages.length;
-      showHeroImage(currentHeroIndex);
-    }
-    function prevHero() {
-      currentHeroIndex = (currentHeroIndex - 1 + heroImages.length) % heroImages.length;
-      showHeroImage(currentHeroIndex);
-    }
+    function nextHero() { currentHeroIndex = (currentHeroIndex + 1) % heroImages.length; showHeroImage(currentHeroIndex); }
+    function prevHero() { currentHeroIndex = (currentHeroIndex - 1 + heroImages.length) % heroImages.length; showHeroImage(currentHeroIndex); }
     setInterval(nextHero, 5000);
 
-    // Ctrl + Dでソースをページ上に表示
+    // Ctrl+D でソース表示
     document.addEventListener("keydown", function(e) {
       if (e.ctrlKey && e.key.toLowerCase() === "d") {
         e.preventDefault();
@@ -324,7 +392,6 @@
         document.getElementById("closeSource").style.display = "block";
       }
     });
-
     function closeSource() {
       document.getElementById("sourceOverlay").style.display = "none";
       document.getElementById("closeSource").style.display = "none";
