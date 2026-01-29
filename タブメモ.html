@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>描画ツール - ポップアウトデザイン完全再現</title>
+    <title>描画ツール - ポップアウト連動版</title>
     <style>
         :root {
             --primary-bg: #202124;
@@ -21,15 +21,15 @@
             background-color: white;
         }
 
-        /* --- 1. 通常モード用のUI --- */
+        /* --- モード別表示制御 --- */
+        /* 通常時：タブバーを表示 / 別窓：タブバーを隠す */
         #tabs-bar { display: flex; align-items: flex-end; padding: 8px 10px 0 10px; gap: 5px; background: var(--primary-bg); }
-        .tab { display: flex; align-items: center; padding: 8px 15px; background: var(--tab-bg); color: white; border-radius: 8px 8px 0 0; cursor: pointer; min-width: 100px; font-size: 12px; }
-        .tab.active { background: white; color: black; }
-        #add-tab-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
         #standard-toolbar-top { background: white; padding: 8px 15px; display: flex; gap: 10px; border-bottom: 1px solid #eee; align-items: center; }
-        #urlInput { flex-grow: 1; padding: 6px 15px; border-radius: 20px; border: 1px solid #dfe1e5; background: #f1f3f4; font-size: 13px; }
+        
+        body.is-popout #tabs-bar,
+        body.is-popout #standard-toolbar-top { display: none; }
 
-        /* --- 2. 画像のデザインを完全再現したツールバー (ポップアウト用) --- */
+        /* --- 画像デザイン再現ツールバー --- */
         #popout-toolbar {
             display: flex;
             background: white;
@@ -49,109 +49,75 @@
             gap: 2px;
         }
         .mode-btn {
-            border: none;
-            background: none;
-            padding: 8px 18px;
-            border-radius: 9px;
-            cursor: pointer;
-            font-size: 15px;
-            color: #3c4043;
-            font-weight: 500;
+            border: none; background: none; padding: 8px 18px; border-radius: 9px;
+            cursor: pointer; font-size: 15px; color: #3c4043; font-weight: 500;
         }
         .mode-btn.active {
-            background: white;
-            color: var(--accent-blue);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            background: white; color: var(--accent-blue); box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
 
-        /* 戻る・進むボタン */
+        /* 戻る・進む */
         .history-btn {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 6px 12px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #3c4043;
-            display: flex;
-            align-items: center;
-            gap: 4px;
+            background: white; border: 1px solid var(--border-color); border-radius: 6px;
+            padding: 6px 12px; cursor: pointer; font-size: 14px; color: #3c4043;
+            display: flex; align-items: center; gap: 4px;
         }
         .history-btn:disabled { color: #d0d0d0; border-color: #f1f3f4; cursor: not-allowed; }
-        .history-btn .icon { font-size: 18px; margin-top: -2px; }
 
-        /* 仕切り線 */
         .divider { width: 1px; height: 28px; background: #e0e0e0; margin: 0 4px; }
 
         /* カラーグループ */
         .color-group { display: flex; gap: 8px; align-items: center; }
         .circle-btn {
-            width: 26px; height: 26px;
-            border-radius: 50%;
-            border: 2px solid #e0e0e0;
-            cursor: pointer;
-            padding: 0;
-            transition: transform 0.1s;
+            width: 26px; height: 26px; border-radius: 50%; border: 2px solid #e0e0e0;
+            cursor: pointer; padding: 0; transition: transform 0.1s;
         }
         .circle-btn.active { border-color: #999; transform: scale(1.1); }
-        #customPicker {
-            width: 32px; height: 24px;
-            padding: 0; border: 1px solid #555;
-            cursor: pointer; background: none;
-        }
+        #customPicker { width: 32px; height: 24px; padding: 0; border: 1px solid #555; cursor: pointer; }
 
-        /* サイズスライダー (画像通り) */
+        /* サイズスライダー (画像再現) */
         .size-group { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #3c4043; }
         input[type="range"] {
-            -webkit-appearance: none;
-            width: 160px;
-            height: 6px;
-            background: #333; /* ダークグレーのバー */
-            border-radius: 3px;
-            outline: none;
+            -webkit-appearance: none; width: 160px; height: 6px; background: #333; border-radius: 3px; outline: none;
         }
         input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 22px; height: 22px;
-            background: #c1bcac; /* ベージュっぽいグレーのつまみ */
-            border-radius: 50%;
-            cursor: pointer;
-            border: 1px solid #999;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            -webkit-appearance: none; width: 22px; height: 22px; background: #c1bcac;
+            border-radius: 50%; border: 1px solid #999; cursor: pointer;
         }
 
-        /* --- モード別表示制御 --- */
-        body.is-popout #tabs-bar,
-        body.is-popout #standard-toolbar-top { display: none; }
-        
-        /* コンテンツエリア */
+        /* --- コンテンツエリア --- */
         #views-container { flex-grow: 1; position: relative; background: #f5f5f5; }
         .tab-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
         .tab-view.active { display: block; }
         .tab-view iframe { width: 100%; height: 100%; border: none; background: white; }
+        
+        /* キャンバス：操作モード以外は入力を受け付ける */
         .tab-view canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; pointer-events: none; }
-        .mode-draw canvas, .mode-eraser canvas, .mode-memo canvas { pointer-events: auto; }
+        body.mode-draw canvas, body.mode-eraser canvas, body.mode-memo canvas { pointer-events: auto; }
+        body.mode-draw canvas { cursor: crosshair; }
+        body.mode-eraser canvas { cursor: cell; }
 
         /* メモ */
         .memo { position: absolute; width: 180px; background: #fff4ac; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); padding: 15px 5px 5px; cursor: move; z-index: 10; }
         .memo textarea { width: 100%; height: 60px; background: transparent; border: none; resize: none; outline: none; }
-        
-        #popoutLink { margin-left: auto; color: var(--accent-blue); font-size: 12px; cursor: pointer; text-decoration: underline; }
+
+        #urlInput { flex-grow: 1; padding: 6px 15px; border-radius: 20px; border: 1px solid #dfe1e5; background: #f1f3f4; font-size: 13px; }
+        #popoutLink, #add-tab-btn { cursor: pointer; color: var(--accent-blue); }
+        #add-tab-btn { background:none; border:none; color:white; font-size:20px; }
     </style>
 </head>
 <body class="mode-nav">
 
-    <!-- 通常モードのヘッダー -->
+    <!-- 通常時のみ表示：タブバーとURL入力 -->
     <div id="tabs-bar"><button id="add-tab-btn">+</button></div>
     <div id="standard-toolbar-top">
         <input type="text" id="urlInput" placeholder="URLを入力してEnter">
-        <div id="popoutLink">🗔 別ウィンドウで表示</div>
-        <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer;">全消去</button>
+        <div id="popoutLink" style="font-size:12px; text-decoration:underline;">🗔 別ウィンドウを表示</div>
+        <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px;">全消去</button>
     </div>
 
-    <!-- 画像のデザインを完全再現したツールバー (共通利用) -->
+    <!-- 共通：画像再現ツールバー (別窓でもフル機能) -->
     <div id="popout-toolbar">
-        <!-- カプセル型グループ -->
         <div class="capsule-group">
             <button class="mode-btn active" id="navBtn">操作</button>
             <button class="mode-btn" id="drawBtn">ペン</button>
@@ -159,21 +125,15 @@
             <button class="mode-btn" id="memoBtn">メモ</button>
         </div>
 
-        <!-- 戻る・進む -->
         <div style="display: flex; gap: 8px; margin-left: 8px;">
-            <button class="history-btn" id="undoBtn">
-                <span class="icon">↩</span> 戻る
-            </button>
-            <button class="history-btn" id="redoBtn" disabled>
-                <span class="icon">↪</span> 進む
-            </button>
+            <button class="history-btn" id="undoBtn">↩ 戻る</button>
+            <button class="history-btn" id="redoBtn" disabled>↪ 進む</button>
         </div>
 
         <div class="divider"></div>
 
-        <!-- カラー選択 -->
         <div class="color-group">
-            <button class="circle-btn" data-color="#ff4d4d" style="background-color: #ff4d4d;"></button>
+            <button class="circle-btn active" data-color="#ff4d4d" style="background-color: #ff4d4d;"></button>
             <button class="circle-btn" data-color="#4d79ff" style="background-color: #4d79ff;"></button>
             <button class="circle-btn" data-color="#2ecc71" style="background-color: #2ecc71;"></button>
             <input type="color" id="customPicker" value="#ff4d4d">
@@ -181,7 +141,6 @@
 
         <div class="divider"></div>
 
-        <!-- サイズスライダー -->
         <div class="size-group">
             <span>サイズ</span>
             <input type="range" id="sizePicker" min="1" max="50" value="5">
@@ -197,13 +156,15 @@
         let isDrawing = false;
         let lastX = 0, lastY = 0;
 
-        // 別ウィンドウ判定
-        const isPopout = new URLSearchParams(window.location.search).get('mode') === 'popout';
+        // URLパラメータで別窓かどうかを判定
+        const urlParams = new URLSearchParams(window.location.search);
+        const isPopout = urlParams.get('mode') === 'popout';
+        const targetTabId = urlParams.get('tabId'); // 特定のタブを開く場合
+
         if (isPopout) document.body.classList.add('is-popout');
 
         const viewsContainer = document.getElementById('views-container');
         const tabsBar = document.getElementById('tabs-bar');
-        const urlInput = document.getElementById('urlInput');
         const customPicker = document.getElementById('customPicker');
         const sizePicker = document.getElementById('sizePicker');
 
@@ -215,8 +176,8 @@
                 })) : [];
                 return { ...tab, memos };
             });
-            localStorage.setItem('drawApp_v5', JSON.stringify(data));
-            localStorage.setItem('drawAppActive_v5', activeTabId);
+            localStorage.setItem('drawAppData_vFinal', JSON.stringify(data));
+            localStorage.setItem('drawAppActive_vFinal', activeTabId);
         }
 
         function createTab(existingData = null) {
@@ -231,6 +192,7 @@
             };
             tabs.push(tabObj);
 
+            // 別窓でない場合のみタブボタンを作成
             if (!isPopout) {
                 const tabEl = document.createElement('div');
                 tabEl.className = 'tab'; tabEl.id = `tab-btn-${id}`;
@@ -267,7 +229,7 @@
             const dataUrl = canvas.toDataURL();
             if(tab.historyIndex < tab.history.length - 1) tab.history = tab.history.slice(0, tab.historyIndex + 1);
             tab.history.push(dataUrl);
-            if(tab.history.length > 15) tab.history.shift(); else tab.historyIndex++;
+            if(tab.history.length > 20) tab.history.shift(); else tab.historyIndex++;
             updateHistoryButtons();
             saveAllData();
         }
@@ -289,8 +251,10 @@
         function updateHistoryButtons() {
             const t = tabs.find(t => t.id === activeTabId);
             const ub = document.getElementById('undoBtn'), rb = document.getElementById('redoBtn');
-            ub.disabled = !t || t.historyIndex <= 0;
-            rb.disabled = !t || t.historyIndex >= t.history.length - 1;
+            if(ub && rb) {
+                ub.disabled = !t || t.historyIndex <= 0;
+                rb.disabled = !t || t.historyIndex >= t.history.length - 1;
+            }
         }
 
         function initCanvas(canvas, tabObj) {
@@ -335,7 +299,7 @@
             view.querySelector('.memo-layer').appendChild(memo);
         }
 
-        // イベント
+        // --- イベント制御 ---
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.onclick = () => {
                 currentMode = btn.id.replace('Btn', '');
@@ -358,14 +322,18 @@
         
         document.getElementById('popoutLink').onclick = () => {
             saveAllData();
-            window.open(window.location.pathname + '?mode=popout', '_blank', 'width=1000,height=700');
+            // 現在のURLにモードとタブIDを付けて開く
+            window.open(`${window.location.pathname}?mode=popout&tabId=${activeTabId}`, '_blank', 'width=1100,height=800');
         };
 
-        urlInput.onkeypress = (e) => {
+        document.getElementById('urlInput').onkeypress = (e) => {
             if(e.key === 'Enter') {
-                let url = urlInput.value.trim(); if(!url.startsWith('http')) url = 'https://' + url;
+                let url = e.target.value.trim();
+                if(!url.startsWith('http')) url = 'https://' + url;
                 const tab = tabs.find(t => t.id === activeTabId);
-                tab.url = url; document.getElementById(`view-${activeTabId}`).querySelector('iframe').src = url; saveAllData();
+                tab.url = url; 
+                document.getElementById(`view-${activeTabId}`).querySelector('iframe').src = url;
+                saveAllData();
             }
         };
 
@@ -376,13 +344,22 @@
             saveState(tabs.find(t=>t.id===activeTabId), canvas);
         };
 
+        // 起動処理
         window.onload = () => {
-            const saved = localStorage.getItem('drawApp_v5');
+            const saved = localStorage.getItem('drawAppData_vFinal');
             if (saved) {
-                JSON.parse(saved).forEach(d => createTab(d));
-                const activeId = localStorage.getItem('drawAppActive_v5');
+                const parsed = JSON.parse(saved);
+                parsed.forEach(d => {
+                    // 別窓の場合、クリックしたタブだけを復元するか、全タブ復元するか
+                    // ここでは使い勝手を考え「全タブ復元し、指定のタブを表示」にします
+                    createTab(d);
+                });
+                
+                const activeId = targetTabId || localStorage.getItem('drawAppActive_vFinal');
                 if (activeId) switchTab(Number(activeId));
-            } else { createTab(); }
+            } else {
+                createTab();
+            }
         };
     </script>
 </body>
