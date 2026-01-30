@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高機能描画ツール - リアルタイム連動版</title>
+    <title>高機能描画ツール - 完全連動版</title>
     <style>
         :root {
             --primary-bg: #202124;
@@ -21,15 +21,18 @@
             background-color: white;
         }
 
-        /* --- 表示制御 --- */
+        /* --- タブ・URLバー (メイン窓用) --- */
         #tabs-bar { display: flex; align-items: flex-end; padding: 8px 10px 0 10px; gap: 5px; background: var(--primary-bg); }
-        #standard-toolbar { background: white; padding: 8px 15px; display: flex; gap: 10px; border-bottom: 1px solid #eee; align-items: center; }
+        .tab { display: flex; align-items: center; padding: 8px 15px; background: var(--tab-bg); color: white; border-radius: 8px 8px 0 0; cursor: pointer; min-width: 100px; font-size: 12px; }
+        .tab.active { background: white; color: black; }
         
-        /* 別ウィンドウ（is-popout）時は通常バーを隠す */
-        body.is-popout #tabs-bar,
-        body.is-popout #standard-toolbar { display: none; }
+        #standard-toolbar { background: white; padding: 8px 15px; display: flex; gap: 10px; border-bottom: 1px solid #eee; align-items: center; }
+        #urlInput { flex-grow: 1; padding: 7px 15px; border-radius: 20px; border: 1px solid #dfe1e5; background: #f1f3f4; font-size: 13px; outline: none; }
 
-        /* --- 画像デザイン再現ツールバー --- */
+        /* 別ウィンドウ表示時の制御（URL欄は両方で使う場合は表示） */
+        body.is-popout #tabs-bar { display: none; }
+
+        /* --- 画像デザイン再現ツールバー (連動) --- */
         #draw-toolbar {
             display: flex; background: white; padding: 8px 16px; align-items: center; gap: 12px;
             border-bottom: 1px solid #eee; user-select: none; z-index: 2000;
@@ -60,24 +63,24 @@
         
         body.mode-draw canvas, body.mode-eraser canvas, body.mode-memo canvas { pointer-events: auto; }
         body.mode-draw canvas { cursor: crosshair; }
-        body.mode-eraser canvas { cursor: cell; }
 
         .memo { position: absolute; width: 180px; background: #fff4ac; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); padding: 15px 5px 5px; cursor: move; z-index: 10; }
         .memo textarea { width: 100%; height: 60px; background: transparent; border: none; resize: none; outline: none; }
-        #urlInput { flex-grow: 1; padding: 6px 15px; border-radius: 20px; border: 1px solid #dfe1e5; background: #f1f3f4; }
     </style>
 </head>
 <body class="mode-nav">
 
-    <!-- 通常時のみ表示（メインウィンドウ） -->
+    <!-- タブバー (メイン窓のみ) -->
     <div id="tabs-bar"><button id="add-tab-btn" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">+</button></div>
+
+    <!-- URL操作バー (両方の窓で同期) -->
     <div id="standard-toolbar">
-        <input type="text" id="urlInput" placeholder="URLを入力してEnter">
-        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline;">🗔 別ウィンドウを表示</div>
-        <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px;">全消去</button>
+        <input type="text" id="urlInput" placeholder="URLを入力してEnterで全ウィンドウ連動">
+        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を開く</div>
+        <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px; white-space:nowrap;">全消去</button>
     </div>
 
-    <!-- 描画ツールバー（両方の窓で共通表示） -->
+    <!-- 描画ツールバー (両方の窓で同期) -->
     <div id="draw-toolbar">
         <div class="capsule-group">
             <button class="mode-btn active" id="navBtn">操作</button>
@@ -106,41 +109,52 @@
     <div id="views-container"></div>
 
     <script>
-        // --- 設定と通信の初期化 ---
+        // --- 通信用BroadcastChannel ---
+        const syncChannel = new BroadcastChannel('full_sync_channel');
+
         let tabs = [];
         let activeTabId = null;
         let currentMode = 'nav';
         let isDrawing = false;
         let lastX = 0, lastY = 0;
 
-        // 別ウィンドウ間の通信用チャンネル
-        const syncChannel = new BroadcastChannel('draw_app_sync');
-
         const params = new URLSearchParams(window.location.search);
         const isPopout = params.get('mode') === 'popout';
         if (isPopout) document.body.classList.add('is-popout');
 
         const viewsContainer = document.getElementById('views-container');
+        const urlInput = document.getElementById('urlInput');
         const customPicker = document.getElementById('customPicker');
         const sizePicker = document.getElementById('sizePicker');
 
-        // --- 同期処理 ---
+        // --- 同期メッセージ受信処理 ---
         syncChannel.onmessage = (e) => {
             const { type, data } = e.data;
-            const tab = tabs.find(t => t.id === data.tabId);
-            if (!tab) return;
-
+            
             if (type === 'SYNC_URL') {
-                tab.url = data.url;
-                const iframe = document.querySelector(`#view-${tab.id} iframe`);
-                if (iframe) iframe.src = data.url;
+                const tab = tabs.find(t => t.id === data.tabId);
+                if (tab) {
+                    tab.url = data.url;
+                    if (activeTabId === data.tabId) urlInput.value = data.url;
+                    document.querySelector(`#view-${tab.id} iframe`).src = data.url;
+                }
+            } else if (type === 'SYNC_SWITCH_TAB') {
+                switchTab(data.tabId, false);
             } else if (type === 'SYNC_DRAW') {
-                tab.history = data.history;
-                tab.historyIndex = data.historyIndex;
-                applyHistory(tab);
+                const tab = tabs.find(t => t.id === data.tabId);
+                if (tab) {
+                    tab.history = data.history;
+                    tab.historyIndex = data.historyIndex;
+                    applyHistory(tab);
+                }
+            } else if (type === 'SYNC_MODE') {
+                setMode(data.mode, false);
             } else if (type === 'SYNC_MEMO') {
-                tab.memos = data.memos;
-                refreshMemos(tab);
+                const tab = tabs.find(t => t.id === data.tabId);
+                if (tab) {
+                    tab.memos = data.memos;
+                    refreshMemos(tab);
+                }
             }
         };
 
@@ -148,18 +162,7 @@
             syncChannel.postMessage({ type, data });
         }
 
-        // --- タブと状態管理 ---
-        function saveAllData() {
-            const data = tabs.map(tab => {
-                const view = document.getElementById(`view-${tab.id}`);
-                const memos = view ? Array.from(view.querySelectorAll('.memo')).map(m => ({
-                    left: m.style.left, top: m.style.top, text: m.querySelector('textarea').value
-                })) : [];
-                return { ...tab, memos };
-            });
-            localStorage.setItem('drawApp_SyncStore', JSON.stringify(data));
-        }
-
+        // --- タブ・URL操作 ---
         function createTab(existingData = null) {
             const id = existingData ? existingData.id : Date.now();
             const tabObj = {
@@ -175,8 +178,8 @@
             if (!isPopout) {
                 const tabEl = document.createElement('div');
                 tabEl.className = 'tab'; tabEl.id = `tab-btn-${id}`;
-                tabEl.innerHTML = `<span>${tabObj.title}</span>`;
-                tabEl.onclick = () => switchTab(id);
+                tabEl.innerHTML = `<span>タブ</span>`;
+                tabEl.onclick = () => switchTab(id, true);
                 document.getElementById('tabs-bar').insertBefore(tabEl, document.getElementById('add-tab-btn'));
             }
 
@@ -192,17 +195,51 @@
             } else {
                 saveState(tabObj, viewEl.querySelector('canvas'), false);
             }
-            switchTab(id);
+            switchTab(id, false);
         }
 
-        function switchTab(id) {
+        function switchTab(id, shouldBroadcast) {
             activeTabId = id;
             document.querySelectorAll('.tab, .tab-view').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-btn-${id}`)?.classList.add('active');
             document.getElementById(`view-${id}`)?.classList.add('active');
+            
+            const tab = tabs.find(t => t.id === id);
+            if (tab) urlInput.value = tab.url === "about:blank" ? "" : tab.url;
+            
             updateHistoryButtons();
+            if (shouldBroadcast) broadcast('SYNC_SWITCH_TAB', { tabId: id });
         }
 
+        urlInput.onkeypress = (e) => {
+            if (e.key === 'Enter') {
+                let url = urlInput.value.trim();
+                if (!url.startsWith('http')) url = 'https://' + url;
+                const tab = tabs.find(t => t.id === activeTabId);
+                if (tab) {
+                    tab.url = url;
+                    document.getElementById(`view-${activeTabId}`).querySelector('iframe').src = url;
+                    broadcast('SYNC_URL', { tabId: activeTabId, url: url });
+                    saveAllData();
+                }
+            }
+        };
+
+        // --- モード管理 ---
+        function setMode(mode, shouldBroadcast) {
+            currentMode = mode;
+            document.body.className = (isPopout ? 'is-popout ' : '') + 'mode-' + mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.id === mode + 'Btn');
+            });
+            if (shouldBroadcast) broadcast('SYNC_MODE', { mode: mode });
+        }
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.onclick = () => setMode(btn.id.replace('Btn', ''), true);
+        });
+
+        // --- 描画・履歴 ---
         function saveState(tab, canvas, shouldBroadcast = true) {
             const dataUrl = canvas.toDataURL();
             if(tab.historyIndex < tab.history.length - 1) tab.history = tab.history.slice(0, tab.historyIndex + 1);
@@ -215,7 +252,6 @@
 
         function applyHistory(tab) {
             const canvas = document.querySelector(`#view-${tab.id} canvas`);
-            if(!canvas) return;
             const ctx = canvas.getContext('2d');
             const img = new Image();
             img.src = tab.history[tab.historyIndex];
@@ -234,7 +270,6 @@
             if(t) { ub.disabled = t.historyIndex <= 0; rb.disabled = t.historyIndex >= t.history.length - 1; }
         }
 
-        // --- キャンバスとメモの初期化 ---
         function initCanvas(canvas, tabObj) {
             const dpr = window.devicePixelRatio || 1;
             const ctx = canvas.getContext('2d');
@@ -256,13 +291,13 @@
                 if(!isDrawing) return;
                 ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(e.offsetX, e.offsetY);
                 ctx.globalCompositeOperation = (currentMode === 'eraser') ? 'destination-out' : 'source-over';
-                ctx.strokeStyle = customPicker.value;
-                ctx.lineWidth = sizePicker.value;
+                ctx.strokeStyle = customPicker.value; ctx.lineWidth = sizePicker.value;
                 ctx.stroke(); [lastX, lastY] = [e.offsetX, e.offsetY];
             });
             canvas.addEventListener('pointerup', () => { if(isDrawing) { isDrawing = false; saveState(tabObj, canvas); } });
         }
 
+        // --- メモ ---
         function addMemo(x, y, text, tabObj) {
             tabObj.memos.push({ left: x + 'px', top: y + 'px', text: text });
             refreshMemos(tabObj);
@@ -285,49 +320,27 @@
                 memoEl.onmousedown = (e) => {
                     if(e.target.tagName === 'TEXTAREA') return;
                     let ox = e.clientX - memoEl.offsetLeft, oy = e.clientY - memoEl.offsetTop;
-                    document.onmousemove = (e) => {
-                        memoEl.style.left = (e.clientX - ox) + 'px'; memoEl.style.top = (e.clientY - oy) + 'px';
-                    };
+                    document.onmousemove = (e) => { memoEl.style.left = (e.clientX - ox) + 'px'; memoEl.style.top = (e.clientY - oy) + 'px'; };
                     document.onmouseup = () => {
                         document.onmousemove = null;
-                        tab.memos[idx].left = memoEl.style.left;
-                        tab.memos[idx].top = memoEl.style.top;
-                        saveAllData();
-                        broadcast('SYNC_MEMO', { tabId: tab.id, memos: tab.memos });
+                        tab.memos[idx].left = memoEl.style.left; tab.memos[idx].top = memoEl.style.top;
+                        saveAllData(); broadcast('SYNC_MEMO', { tabId: tab.id, memos: tab.memos });
                     };
                 };
                 layer.appendChild(memoEl);
             });
         }
 
-        // --- イベント制御 ---
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.onclick = () => {
-                currentMode = btn.id.replace('Btn', '');
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                document.body.className = (isPopout ? 'is-popout ' : '') + 'mode-' + currentMode;
-            };
-        });
-
+        // --- 共通アクション ---
         document.getElementById('popoutBtn').onclick = () => {
             saveAllData();
             window.open(`${window.location.pathname}?mode=popout&tabId=${activeTabId}`, '_blank', 'width=1100,height=800');
         };
 
-        document.getElementById('urlInput').onkeypress = (e) => {
-            if(e.key === 'Enter') {
-                let url = e.target.value.trim(); if(!url.startsWith('http')) url = 'https://' + url;
-                const tab = tabs.find(t => t.id === activeTabId);
-                tab.url = url;
-                document.getElementById(`view-${activeTabId}`).querySelector('iframe').src = url;
-                broadcast('SYNC_URL', { tabId: tab.id, url: url });
-                saveAllData();
-            }
-        };
-
+        document.getElementById('add-tab-btn').onclick = () => createTab();
+        
         document.getElementById('clearBtn').onclick = () => {
-            if(confirm('全消去しますか？')) {
+            if(confirm('現在のタブの描画を全消去しますか？')) {
                 const t = tabs.find(t => t.id === activeTabId);
                 const cvs = document.querySelector(`#view-${activeTabId} canvas`);
                 cvs.getContext('2d').clearRect(0,0,cvs.width,cvs.height);
@@ -337,17 +350,23 @@
             }
         };
 
-        document.getElementById('undoBtn').onclick = () => { 
-            const t = tabs.find(t => t.id === activeTabId); 
-            if(t && t.historyIndex > 0) { t.historyIndex--; applyHistory(t); broadcast('SYNC_DRAW', { tabId: t.id, history: t.history, historyIndex: t.historyIndex }); } 
-        };
+        function saveAllData() {
+            const data = tabs.map(tab => {
+                const view = document.getElementById(`view-${tab.id}`);
+                const memos = view ? Array.from(view.querySelectorAll('.memo')).map(m => ({
+                    left: m.style.left, top: m.style.top, text: m.querySelector('textarea').value
+                })) : [];
+                return { ...tab, memos };
+            });
+            localStorage.setItem('drawApp_LinkedStorage', JSON.stringify(data));
+        }
 
         window.onload = () => {
-            const saved = localStorage.getItem('drawApp_SyncStore');
+            const saved = localStorage.getItem('drawApp_LinkedStorage');
             if (saved) {
                 JSON.parse(saved).forEach(d => createTab(d));
-                const activeId = params.get('tabId') || localStorage.getItem('drawApp_Active_v6');
-                if (activeId) switchTab(Number(activeId));
+                const activeId = params.get('tabId') || tabs[0]?.id;
+                if (activeId) switchTab(Number(activeId), false);
             } else { createTab(); }
         };
     </script>
