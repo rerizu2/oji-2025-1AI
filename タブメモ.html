@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高機能描画ツール - 完全連動版</title>
+    <title>高機能描画ツール - 全画面連動版</title>
     <style>
         :root {
             --primary-bg: #202124;
@@ -21,7 +21,7 @@
             background-color: white;
         }
 
-        /* --- タブ・URLバー (メイン窓用) --- */
+        /* --- 表示制御 --- */
         #tabs-bar { display: flex; align-items: flex-end; padding: 8px 10px 0 10px; gap: 5px; background: var(--primary-bg); }
         .tab { display: flex; align-items: center; padding: 8px 15px; background: var(--tab-bg); color: white; border-radius: 8px 8px 0 0; cursor: pointer; min-width: 100px; font-size: 12px; }
         .tab.active { background: white; color: black; }
@@ -29,10 +29,10 @@
         #standard-toolbar { background: white; padding: 8px 15px; display: flex; gap: 10px; border-bottom: 1px solid #eee; align-items: center; }
         #urlInput { flex-grow: 1; padding: 7px 15px; border-radius: 20px; border: 1px solid #dfe1e5; background: #f1f3f4; font-size: 13px; outline: none; }
 
-        /* 別ウィンドウ表示時の制御（URL欄は両方で使う場合は表示） */
+        /* 別ウィンドウ（is-popout）時はタブバーを隠す */
         body.is-popout #tabs-bar { display: none; }
 
-        /* --- 画像デザイン再現ツールバー (連動) --- */
+        /* --- 画像デザイン再現ツールバー --- */
         #draw-toolbar {
             display: flex; background: white; padding: 8px 16px; align-items: center; gap: 12px;
             border-bottom: 1px solid #eee; user-select: none; z-index: 2000;
@@ -66,21 +66,33 @@
 
         .memo { position: absolute; width: 180px; background: #fff4ac; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); padding: 15px 5px 5px; cursor: move; z-index: 10; }
         .memo textarea { width: 100%; height: 60px; background: transparent; border: none; resize: none; outline: none; }
+
+        /* 全画面通知ラベル（別窓時のみ） */
+        #fullscreen-hint {
+            display: none; position: absolute; top: 50px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.6); color: white; padding: 8px 16px; border-radius: 20px;
+            font-size: 12px; pointer-events: none; z-index: 3000;
+        }
+        body.is-popout #fullscreen-hint { display: block; opacity: 0.8; animation: fadeout 5s forwards; }
+        @keyframes fadeout { 0% { opacity: 0.8; } 80% { opacity: 0.8; } 100% { opacity: 0; } }
     </style>
 </head>
 <body class="mode-nav">
 
+    <!-- 全画面ヒント (別窓時のみ) -->
+    <div id="fullscreen-hint">画面をクリックすると全画面表示になります</div>
+
     <!-- タブバー (メイン窓のみ) -->
     <div id="tabs-bar"><button id="add-tab-btn" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">+</button></div>
 
-    <!-- URL操作バー (両方の窓で同期) -->
+    <!-- URL操作バー (連動) -->
     <div id="standard-toolbar">
-        <input type="text" id="urlInput" placeholder="URLを入力してEnterで全ウィンドウ連動">
-        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を開く</div>
-        <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px; white-space:nowrap;">全消去</button>
+        <input type="text" id="urlInput" placeholder="URLを入力してEnter">
+        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を全画面で開く</div>
+        <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px;">全消去</button>
     </div>
 
-    <!-- 描画ツールバー (両方の窓で同期) -->
+    <!-- 描画ツールバー (連動) -->
     <div id="draw-toolbar">
         <div class="capsule-group">
             <button class="mode-btn active" id="navBtn">操作</button>
@@ -109,7 +121,6 @@
     <div id="views-container"></div>
 
     <script>
-        // --- 通信用BroadcastChannel ---
         const syncChannel = new BroadcastChannel('full_sync_channel');
 
         let tabs = [];
@@ -120,17 +131,27 @@
 
         const params = new URLSearchParams(window.location.search);
         const isPopout = params.get('mode') === 'popout';
-        if (isPopout) document.body.classList.add('is-popout');
+        
+        if (isPopout) {
+            document.body.classList.add('is-popout');
+            // 別ウィンドウ用：初回クリック時に全画面表示をリクエストする
+            document.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log("全画面表示に失敗しました: " + err.message);
+                    });
+                }
+            }, { once: true });
+        }
 
         const viewsContainer = document.getElementById('views-container');
         const urlInput = document.getElementById('urlInput');
         const customPicker = document.getElementById('customPicker');
         const sizePicker = document.getElementById('sizePicker');
 
-        // --- 同期メッセージ受信処理 ---
+        // --- 同期処理 ---
         syncChannel.onmessage = (e) => {
             const { type, data } = e.data;
-            
             if (type === 'SYNC_URL') {
                 const tab = tabs.find(t => t.id === data.tabId);
                 if (tab) {
@@ -142,25 +163,16 @@
                 switchTab(data.tabId, false);
             } else if (type === 'SYNC_DRAW') {
                 const tab = tabs.find(t => t.id === data.tabId);
-                if (tab) {
-                    tab.history = data.history;
-                    tab.historyIndex = data.historyIndex;
-                    applyHistory(tab);
-                }
+                if (tab) { tab.history = data.history; tab.historyIndex = data.historyIndex; applyHistory(tab); }
             } else if (type === 'SYNC_MODE') {
                 setMode(data.mode, false);
             } else if (type === 'SYNC_MEMO') {
                 const tab = tabs.find(t => t.id === data.tabId);
-                if (tab) {
-                    tab.memos = data.memos;
-                    refreshMemos(tab);
-                }
+                if (tab) { tab.memos = data.memos; refreshMemos(tab); }
             }
         };
 
-        function broadcast(type, data) {
-            syncChannel.postMessage({ type, data });
-        }
+        function broadcast(type, data) { syncChannel.postMessage({ type, data }); }
 
         // --- タブ・URL操作 ---
         function createTab(existingData = null) {
@@ -203,10 +215,8 @@
             document.querySelectorAll('.tab, .tab-view').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-btn-${id}`)?.classList.add('active');
             document.getElementById(`view-${id}`)?.classList.add('active');
-            
             const tab = tabs.find(t => t.id === id);
             if (tab) urlInput.value = tab.url === "about:blank" ? "" : tab.url;
-            
             updateHistoryButtons();
             if (shouldBroadcast) broadcast('SYNC_SWITCH_TAB', { tabId: id });
         }
@@ -229,15 +239,10 @@
         function setMode(mode, shouldBroadcast) {
             currentMode = mode;
             document.body.className = (isPopout ? 'is-popout ' : '') + 'mode-' + mode;
-            document.querySelectorAll('.mode-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.id === mode + 'Btn');
-            });
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.id === mode + 'Btn'));
             if (shouldBroadcast) broadcast('SYNC_MODE', { mode: mode });
         }
-
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.onclick = () => setMode(btn.id.replace('Btn', ''), true);
-        });
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => setMode(btn.id.replace('Btn', ''), true));
 
         // --- 描画・履歴 ---
         function saveState(tab, canvas, shouldBroadcast = true) {
@@ -252,6 +257,7 @@
 
         function applyHistory(tab) {
             const canvas = document.querySelector(`#view-${tab.id} canvas`);
+            if(!canvas) return;
             const ctx = canvas.getContext('2d');
             const img = new Image();
             img.src = tab.history[tab.historyIndex];
@@ -306,24 +312,21 @@
 
         function refreshMemos(tab) {
             const layer = document.querySelector(`#view-${tab.id} .memo-layer`);
-            if(!layer) return;
-            layer.innerHTML = '';
+            if(!layer) return; layer.innerHTML = '';
             tab.memos.forEach((m, idx) => {
                 const memoEl = document.createElement('div');
                 memoEl.className = 'memo'; memoEl.style.left = m.left; memoEl.style.top = m.top;
                 memoEl.innerHTML = `<textarea placeholder="メモ...">${m.text}</textarea>`;
                 memoEl.querySelector('textarea').oninput = (e) => {
                     tab.memos[idx].text = e.target.value;
-                    saveAllData();
-                    broadcast('SYNC_MEMO', { tabId: tab.id, memos: tab.memos });
+                    saveAllData(); broadcast('SYNC_MEMO', { tabId: tab.id, memos: tab.memos });
                 };
                 memoEl.onmousedown = (e) => {
                     if(e.target.tagName === 'TEXTAREA') return;
                     let ox = e.clientX - memoEl.offsetLeft, oy = e.clientY - memoEl.offsetTop;
                     document.onmousemove = (e) => { memoEl.style.left = (e.clientX - ox) + 'px'; memoEl.style.top = (e.clientY - oy) + 'px'; };
                     document.onmouseup = () => {
-                        document.onmousemove = null;
-                        tab.memos[idx].left = memoEl.style.left; tab.memos[idx].top = memoEl.style.top;
+                        document.onmousemove = null; tab.memos[idx].left = memoEl.style.left; tab.memos[idx].top = memoEl.style.top;
                         saveAllData(); broadcast('SYNC_MEMO', { tabId: tab.id, memos: tab.memos });
                     };
                 };
@@ -331,16 +334,19 @@
             });
         }
 
-        // --- 共通アクション ---
+        // --- 別ウィンドウ起動 ---
         document.getElementById('popoutBtn').onclick = () => {
             saveAllData();
-            window.open(`${window.location.pathname}?mode=popout&tabId=${activeTabId}`, '_blank', 'width=1100,height=800');
+            // 画面の幅と高さを取得して最大サイズで開く
+            const w = screen.availWidth;
+            const h = screen.availHeight;
+            const features = `width=${w},height=${h},top=0,left=0,menubar=no,toolbar=no,location=no,status=no,resizable=yes`;
+            window.open(`${window.location.pathname}?mode=popout&tabId=${activeTabId}`, '_blank', features);
         };
 
         document.getElementById('add-tab-btn').onclick = () => createTab();
-        
         document.getElementById('clearBtn').onclick = () => {
-            if(confirm('現在のタブの描画を全消去しますか？')) {
+            if(confirm('全消去しますか？')) {
                 const t = tabs.find(t => t.id === activeTabId);
                 const cvs = document.querySelector(`#view-${activeTabId} canvas`);
                 cvs.getContext('2d').clearRect(0,0,cvs.width,cvs.height);
@@ -353,16 +359,14 @@
         function saveAllData() {
             const data = tabs.map(tab => {
                 const view = document.getElementById(`view-${tab.id}`);
-                const memos = view ? Array.from(view.querySelectorAll('.memo')).map(m => ({
-                    left: m.style.left, top: m.style.top, text: m.querySelector('textarea').value
-                })) : [];
+                const memos = view ? Array.from(view.querySelectorAll('.memo')).map(m => ({ left: m.style.left, top: m.style.top, text: m.querySelector('textarea').value })) : [];
                 return { ...tab, memos };
             });
-            localStorage.setItem('drawApp_LinkedStorage', JSON.stringify(data));
+            localStorage.setItem('drawApp_Linked_v7', JSON.stringify(data));
         }
 
         window.onload = () => {
-            const saved = localStorage.getItem('drawApp_LinkedStorage');
+            const saved = localStorage.getItem('drawApp_Linked_v7');
             if (saved) {
                 JSON.parse(saved).forEach(d => createTab(d));
                 const activeId = params.get('tabId') || tabs[0]?.id;
