@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>描画ツール - 別窓操作パネル非表示版</title>
+    <title>高機能描画ツール - リアルタイム連動・ミラーリング版</title>
     <style>
         :root {
             --primary-bg: #202124;
@@ -21,7 +21,7 @@
             background-color: white;
         }
 
-        /* --- メイン画面用のUI制御 --- */
+        /* --- メイン画面用のUI (別窓では非表示) --- */
         #tabs-bar { display: flex; align-items: flex-end; padding: 8px 10px 0 10px; gap: 5px; background: var(--primary-bg); }
         .tab { display: flex; align-items: center; padding: 8px 15px; background: var(--tab-bg); color: white; border-radius: 8px 8px 0 0; cursor: pointer; min-width: 100px; font-size: 12px; }
         .tab.active { background: white; color: black; }
@@ -51,9 +51,7 @@
         input[type="range"] { -webkit-appearance: none; width: 140px; height: 6px; background: #333; border-radius: 3px; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: #c1bcac; border-radius: 50%; border: 1px solid #999; cursor: pointer; }
 
-        /* ==========================================================
-           【重要】別ウィンドウ（is-popout）時の操作画面非表示設定
-        ========================================================== */
+        /* --- 【重要】別ウィンドウ（is-popout）時のツールバー完全非表示設定 --- */
         body.is-popout #tabs-bar,
         body.is-popout #standard-toolbar,
         body.is-popout #draw-toolbar {
@@ -61,16 +59,17 @@
         }
 
         /* コンテンツエリア */
-        #views-container { flex-grow: 1; position: relative; background: #000; } /* 別窓では背景を黒に */
+        #views-container { flex-grow: 1; position: relative; background: #000; }
         .tab-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
         .tab-view.active { display: block; }
         .tab-view iframe { width: 100%; height: 100%; border: none; background: white; }
         .tab-view canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; pointer-events: none; }
         
-        /* メイン画面のモード用 */
+        /* 操作用（メイン窓のみ） */
         body.mode-draw canvas, body.mode-eraser canvas, body.mode-memo canvas { pointer-events: auto; }
         body.mode-draw canvas { cursor: crosshair; }
 
+        /* メモ */
         .memo { position: absolute; width: 180px; background: #fff4ac; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); padding: 15px 5px 5px; cursor: move; z-index: 10; }
         .memo textarea { width: 100%; height: 60px; background: transparent; border: none; resize: none; outline: none; }
 
@@ -85,19 +84,19 @@
 </head>
 <body class="mode-nav">
 
-    <div id="fullscreen-hint">メインウィンドウの操作がここへ反映されます（クリックで全画面）</div>
+    <div id="fullscreen-hint">メインウィンドウの操作が反映されます（クリックで全画面）</div>
 
-    <!-- メイン窓用：タブバー -->
+    <!-- 操作用：タブバー -->
     <div id="tabs-bar"><button id="add-tab-btn" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">+</button></div>
 
-    <!-- メイン窓用：URL操作バー -->
+    <!-- 操作用：URLバー -->
     <div id="standard-toolbar">
-        <input type="text" id="urlInput" placeholder="URLを入力...">
-        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を表示（全画面）</div>
+        <input type="text" id="urlInput" placeholder="URLを入力すると別窓も連動します">
+        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を表示（全画面ミラー）</div>
         <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px;">全消去</button>
     </div>
 
-    <!-- メイン窓用：描画ツールバー -->
+    <!-- 操作用：ツールバー -->
     <div id="draw-toolbar">
         <div class="capsule-group">
             <button class="mode-btn active" id="navBtn">操作</button>
@@ -106,8 +105,8 @@
             <button class="mode-btn" id="memoBtn">メモ</button>
         </div>
         <div style="display: flex; gap: 8px; margin-left: 8px;">
-            <button class="history-btn" id="undoBtn">↩</button>
-            <button class="history-btn" id="redoBtn" disabled>↪</button>
+            <button class="history-btn" id="undoBtn">↩ 戻る</button>
+            <button class="history-btn" id="redoBtn" disabled>↪ 進む</button>
         </div>
         <div class="divider"></div>
         <div class="color-group">
@@ -118,7 +117,7 @@
         </div>
         <div class="divider"></div>
         <div class="size-group">
-            <span style="font-size:13px; color:#666;">サイズ</span>
+            <span>サイズ</span>
             <input type="range" id="sizePicker" min="1" max="50" value="5">
         </div>
     </div>
@@ -126,7 +125,8 @@
     <div id="views-container"></div>
 
     <script>
-        const syncChannel = new BroadcastChannel('full_sync_channel');
+        // --- ブラウザ間通信の初期化 ---
+        const syncChannel = new BroadcastChannel('drawing_mirror_sync');
 
         let tabs = [];
         let activeTabId = null;
@@ -140,9 +140,7 @@
         if (isPopout) {
             document.body.classList.add('is-popout');
             document.addEventListener('click', () => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(() => {});
-                }
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
             }, { once: true });
         }
 
@@ -151,35 +149,42 @@
         const customPicker = document.getElementById('customPicker');
         const sizePicker = document.getElementById('sizePicker');
 
-        // --- 同期受信 ---
+        // --- 同期メッセージ受信（別ウィンドウ側での処理） ---
         syncChannel.onmessage = (e) => {
             const { type, data } = e.data;
-            if (type === 'SYNC_URL') {
+            if (type === 'SYNC_TAB_SWITCH') {
+                switchTab(data.tabId, false);
+            } else if (type === 'SYNC_URL') {
                 const tab = tabs.find(t => t.id === data.tabId);
                 if (tab) {
                     tab.url = data.url;
-                    if (activeTabId === data.tabId) urlInput.value = data.url;
-                    document.querySelector(`#view-${tab.id} iframe`).src = data.url;
+                    const iframe = document.querySelector(`#view-${tab.id} iframe`);
+                    if (iframe) iframe.src = data.url;
                 }
-            } else if (type === 'SYNC_SWITCH_TAB') {
-                switchTab(data.tabId, false);
-            } else if (type === 'SYNC_DRAW') {
+            } else if (type === 'SYNC_CANVAS') {
                 const tab = tabs.find(t => t.id === data.tabId);
-                if (tab) { tab.history = data.history; tab.historyIndex = data.historyIndex; applyHistory(tab); }
-            } else if (type === 'SYNC_MEMO') {
+                if (tab) {
+                    tab.history = data.history;
+                    tab.historyIndex = data.historyIndex;
+                    applyHistory(tab);
+                }
+            } else if (type === 'SYNC_MEMOS') {
                 const tab = tabs.find(t => t.id === data.tabId);
-                if (tab) { tab.memos = data.memos; refreshMemos(tab); }
+                if (tab) {
+                    tab.memos = data.memos;
+                    refreshMemos(tab);
+                }
             }
         };
 
         function broadcast(type, data) { syncChannel.postMessage({ type, data }); }
 
-        // --- タブ管理 ---
+        // --- タブとURL管理 ---
         function createTab(existingData = null) {
             const id = existingData ? existingData.id : Date.now();
             const tabObj = {
                 id: id,
-                title: existingData ? existingData.title : "新しいタブ",
+                title: "タブ",
                 url: existingData ? existingData.url : "about:blank",
                 history: existingData ? existingData.history : [],
                 historyIndex: existingData ? existingData.historyIndex : -1,
@@ -204,8 +209,6 @@
             if (existingData) {
                 if (tabObj.historyIndex >= 0) applyHistory(tabObj);
                 refreshMemos(tabObj);
-            } else {
-                saveState(tabObj, viewEl.querySelector('canvas'), false);
             }
             switchTab(id, false);
         }
@@ -216,12 +219,10 @@
             document.getElementById(`tab-btn-${id}`)?.classList.add('active');
             document.getElementById(`view-${id}`)?.classList.add('active');
             const tab = tabs.find(t => t.id === id);
-            if (tab) urlInput.value = tab.url === "about:blank" ? "" : tab.url;
-            updateHistoryButtons();
-            if (shouldBroadcast) broadcast('SYNC_SWITCH_TAB', { tabId: id });
+            if (tab && !isPopout) urlInput.value = tab.url === "about:blank" ? "" : tab.url;
+            if (shouldBroadcast) broadcast('SYNC_TAB_SWITCH', { tabId: id });
         }
 
-        // --- URL同期 ---
         urlInput.onkeypress = (e) => {
             if (e.key === 'Enter') {
                 let url = urlInput.value.trim();
@@ -236,22 +237,43 @@
             }
         };
 
-        // --- 描画制御 ---
-        function setMode(mode) {
-            currentMode = mode;
-            document.body.className = (isPopout ? 'is-popout ' : '') + 'mode-' + mode;
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.id === mode + 'Btn'));
-        }
-        document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => setMode(btn.id.replace('Btn', '')));
+        // --- 描画とミラーリング ---
+        function initCanvas(canvas, tabObj) {
+            const dpr = window.devicePixelRatio || 1;
+            const ctx = canvas.getContext('2d');
+            const resize = () => {
+                const temp = canvas.toDataURL();
+                canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr;
+                ctx.scale(dpr, dpr); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                const img = new Image(); img.src = temp;
+                img.onload = () => ctx.drawImage(img, 0, 0, canvas.width/dpr, canvas.height/dpr);
+            };
+            window.addEventListener('resize', resize); setTimeout(resize, 0);
 
-        function saveState(tab, canvas, shouldBroadcast = true) {
+            canvas.addEventListener('pointerdown', (e) => {
+                if(currentMode === 'nav' || isPopout) return;
+                if(currentMode === 'memo') { addMemo(e.offsetX, e.offsetY, "", tabObj); return; }
+                isDrawing = true; [lastX, lastY] = [e.offsetX, e.offsetY];
+            });
+            canvas.addEventListener('pointermove', (e) => {
+                if(!isDrawing) return;
+                ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.globalCompositeOperation = (currentMode === 'eraser') ? 'destination-out' : 'source-over';
+                ctx.strokeStyle = customPicker.value; ctx.lineWidth = sizePicker.value;
+                ctx.stroke(); [lastX, lastY] = [e.offsetX, e.offsetY];
+            });
+            canvas.addEventListener('pointerup', () => {
+                if(isDrawing) { isDrawing = false; saveState(tabObj, canvas); }
+            });
+        }
+
+        function saveState(tab, canvas) {
             const dataUrl = canvas.toDataURL();
             if(tab.historyIndex < tab.history.length - 1) tab.history = tab.history.slice(0, tab.historyIndex + 1);
             tab.history.push(dataUrl);
             if(tab.history.length > 20) tab.history.shift(); else tab.historyIndex++;
-            updateHistoryButtons();
+            broadcast('SYNC_CANVAS', { tabId: tab.id, history: tab.history, historyIndex: tab.historyIndex });
             saveAllData();
-            if (shouldBroadcast) broadcast('SYNC_DRAW', { tabId: tab.id, history: tab.history, historyIndex: tab.historyIndex });
         }
 
         function applyHistory(tab) {
@@ -266,45 +288,13 @@
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0, canvas.width/dpr, canvas.height/dpr);
             };
-            updateHistoryButtons();
         }
 
-        function updateHistoryButtons() {
-            const t = tabs.find(t => t.id === activeTabId);
-            const ub = document.getElementById('undoBtn'), rb = document.getElementById('redoBtn');
-            if(t && ub) { ub.disabled = t.historyIndex <= 0; rb.disabled = t.historyIndex >= t.history.length - 1; }
-        }
-
-        function initCanvas(canvas, tabObj) {
-            const dpr = window.devicePixelRatio || 1;
-            const ctx = canvas.getContext('2d');
-            const resize = () => {
-                const temp = canvas.toDataURL();
-                canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr;
-                ctx.scale(dpr, dpr); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                const img = new Image(); img.src = temp;
-                img.onload = () => ctx.drawImage(img, 0, 0, canvas.width/dpr, canvas.height/dpr);
-            };
-            window.addEventListener('resize', resize); setTimeout(resize, 0);
-
-            canvas.addEventListener('pointerdown', (e) => {
-                if(currentMode === 'nav') return;
-                if(currentMode === 'memo') { addMemo(e.offsetX, e.offsetY, "", tabObj); return; }
-                isDrawing = true; [lastX, lastY] = [e.offsetX, e.offsetY];
-            });
-            canvas.addEventListener('pointermove', (e) => {
-                if(!isDrawing) return;
-                ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(e.offsetX, e.offsetY);
-                ctx.globalCompositeOperation = (currentMode === 'eraser') ? 'destination-out' : 'source-over';
-                ctx.strokeStyle = customPicker.value; ctx.lineWidth = sizePicker.value;
-                ctx.stroke(); [lastX, lastY] = [e.offsetX, e.offsetY];
-            });
-            canvas.addEventListener('pointerup', () => { if(isDrawing) { isDrawing = false; saveState(tabObj, canvas); } });
-        }
-
+        // --- メモ管理 ---
         function addMemo(x, y, text, tabObj) {
             tabObj.memos.push({ left: x + 'px', top: y + 'px', text: text });
-            refreshMemos(tabObj); broadcast('SYNC_MEMO', { tabId: tabObj.id, memos: tabObj.memos });
+            refreshMemos(tabObj);
+            broadcast('SYNC_MEMOS', { tabId: tabObj.id, memos: tabObj.memos });
         }
 
         function refreshMemos(tab) {
@@ -314,38 +304,49 @@
                 const memoEl = document.createElement('div');
                 memoEl.className = 'memo'; memoEl.style.left = m.left; memoEl.style.top = m.top;
                 memoEl.innerHTML = `<textarea placeholder="メモ...">${m.text}</textarea>`;
-                memoEl.querySelector('textarea').oninput = (e) => {
-                    tab.memos[idx].text = e.target.value;
-                    saveAllData(); broadcast('SYNC_MEMO', { tabId: tab.id, memos: tab.memos });
-                };
-                memoEl.onmousedown = (e) => {
-                    if(e.target.tagName === 'TEXTAREA') return;
-                    let ox = e.clientX - memoEl.offsetLeft, oy = e.clientY - memoEl.offsetTop;
-                    document.onmousemove = (e) => { memoEl.style.left = (e.clientX - ox) + 'px'; memoEl.style.top = (e.clientY - oy) + 'px'; };
-                    document.onmouseup = () => {
-                        document.onmousemove = null; tab.memos[idx].left = memoEl.style.left; tab.memos[idx].top = memoEl.style.top;
-                        saveAllData(); broadcast('SYNC_MEMO', { tabId: tab.id, memos: tab.memos });
+                
+                if (!isPopout) {
+                    memoEl.querySelector('textarea').oninput = (e) => {
+                        tab.memos[idx].text = e.target.value;
+                        saveAllData(); broadcast('SYNC_MEMOS', { tabId: tab.id, memos: tab.memos });
                     };
-                };
+                    memoEl.onmousedown = (e) => {
+                        if(e.target.tagName === 'TEXTAREA') return;
+                        let ox = e.clientX - memoEl.offsetLeft, oy = e.clientY - memoEl.offsetTop;
+                        document.onmousemove = (e) => { memoEl.style.left = (e.clientX - ox) + 'px'; memoEl.style.top = (e.clientY - oy) + 'px'; };
+                        document.onmouseup = () => {
+                            document.onmousemove = null; tab.memos[idx].left = memoEl.style.left; tab.memos[idx].top = memoEl.style.top;
+                            saveAllData(); broadcast('SYNC_MEMOS', { tabId: tab.id, memos: tab.memos });
+                        };
+                    };
+                }
                 layer.appendChild(memoEl);
             });
         }
 
-        // --- 起動 & クリア ---
+        // --- その他 UI 制御 ---
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => {
+            currentMode = btn.id.replace('Btn', '');
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.body.className = 'mode-' + currentMode;
+        });
+
         document.getElementById('popoutBtn').onclick = () => {
             saveAllData();
             const w = screen.availWidth; const h = screen.availHeight;
-            const features = `width=${w},height=${h},top=0,left=0,menubar=no,toolbar=no,location=no,status=no`;
-            window.open(`${window.location.pathname}?mode=popout&tabId=${activeTabId}`, '_blank', features);
+            window.open(`${window.location.pathname}?mode=popout&tabId=${activeTabId}`, '_blank', `width=${w},height=${h}`);
         };
 
+        document.getElementById('add-tab-btn').onclick = () => createTab();
         document.getElementById('clearBtn').onclick = () => {
             if(confirm('全消去しますか？')) {
                 const t = tabs.find(t => t.id === activeTabId);
                 const cvs = document.querySelector(`#view-${activeTabId} canvas`);
                 cvs.getContext('2d').clearRect(0,0,cvs.width,cvs.height);
                 t.memos = []; refreshMemos(t);
-                saveState(t, cvs); broadcast('SYNC_MEMO', { tabId: t.id, memos: [] });
+                saveState(t, cvs);
+                broadcast('SYNC_MEMOS', { tabId: t.id, memos: [] });
             }
         };
 
@@ -355,11 +356,11 @@
                 const memos = view ? Array.from(view.querySelectorAll('.memo')).map(m => ({ left: m.style.left, top: m.style.top, text: m.querySelector('textarea').value })) : [];
                 return { ...tab, memos };
             });
-            localStorage.setItem('drawApp_Final_v8', JSON.stringify(data));
+            localStorage.setItem('drawApp_Linked_Mirror', JSON.stringify(data));
         }
 
         window.onload = () => {
-            const saved = localStorage.getItem('drawApp_Final_v8');
+            const saved = localStorage.getItem('drawApp_Linked_Mirror');
             if (saved) {
                 JSON.parse(saved).forEach(d => createTab(d));
                 const activeId = params.get('tabId') || tabs[0]?.id;
