@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高機能描画ツール - リアルタイム連動・ミラーリング版</title>
+    <title>高機能描画ツール - 超リアルタイム連動版</title>
     <style>
         :root {
             --primary-bg: #202124;
@@ -21,7 +21,7 @@
             background-color: white;
         }
 
-        /* --- メイン画面用のUI (別窓では非表示) --- */
+        /* --- UI表示制御 --- */
         #tabs-bar { display: flex; align-items: flex-end; padding: 8px 10px 0 10px; gap: 5px; background: var(--primary-bg); }
         .tab { display: flex; align-items: center; padding: 8px 15px; background: var(--tab-bg); color: white; border-radius: 8px 8px 0 0; cursor: pointer; min-width: 100px; font-size: 12px; }
         .tab.active { background: white; color: black; }
@@ -39,8 +39,6 @@
         .mode-btn.active { background: white; color: var(--accent-blue); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
 
         .history-btn { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 14px; }
-        .history-btn:disabled { color: #d0d0d0; border-color: #f1f3f4; cursor: not-allowed; }
-
         .divider { width: 1px; height: 28px; background: #e0e0e0; margin: 0 4px; }
         .color-group { display: flex; gap: 8px; align-items: center; }
         .circle-btn { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #e0e0e0; cursor: pointer; padding: 0; }
@@ -51,7 +49,7 @@
         input[type="range"] { -webkit-appearance: none; width: 140px; height: 6px; background: #333; border-radius: 3px; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: #c1bcac; border-radius: 50%; border: 1px solid #999; cursor: pointer; }
 
-        /* --- 【重要】別ウィンドウ（is-popout）時のツールバー完全非表示設定 --- */
+        /* 別ウィンドウ（is-popout）時は操作系を完全に隠す */
         body.is-popout #tabs-bar,
         body.is-popout #standard-toolbar,
         body.is-popout #draw-toolbar {
@@ -65,11 +63,9 @@
         .tab-view iframe { width: 100%; height: 100%; border: none; background: white; }
         .tab-view canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; pointer-events: none; }
         
-        /* 操作用（メイン窓のみ） */
         body.mode-draw canvas, body.mode-eraser canvas, body.mode-memo canvas { pointer-events: auto; }
         body.mode-draw canvas { cursor: crosshair; }
 
-        /* メモ */
         .memo { position: absolute; width: 180px; background: #fff4ac; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); padding: 15px 5px 5px; cursor: move; z-index: 10; }
         .memo textarea { width: 100%; height: 60px; background: transparent; border: none; resize: none; outline: none; }
 
@@ -84,19 +80,16 @@
 </head>
 <body class="mode-nav">
 
-    <div id="fullscreen-hint">メインウィンドウの操作が反映されます（クリックで全画面）</div>
+    <div id="fullscreen-hint">メインウィンドウとリアルタイム連動中（クリックで全画面）</div>
 
-    <!-- 操作用：タブバー -->
     <div id="tabs-bar"><button id="add-tab-btn" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">+</button></div>
 
-    <!-- 操作用：URLバー -->
     <div id="standard-toolbar">
-        <input type="text" id="urlInput" placeholder="URLを入力すると別窓も連動します">
-        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を表示（全画面ミラー）</div>
+        <input type="text" id="urlInput" placeholder="URLを入力すると別窓も瞬時に切り替わります">
+        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を表示（リアルタイム同期）</div>
         <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px;">全消去</button>
     </div>
 
-    <!-- 操作用：ツールバー -->
     <div id="draw-toolbar">
         <div class="capsule-group">
             <button class="mode-btn active" id="navBtn">操作</button>
@@ -106,7 +99,7 @@
         </div>
         <div style="display: flex; gap: 8px; margin-left: 8px;">
             <button class="history-btn" id="undoBtn">↩ 戻る</button>
-            <button class="history-btn" id="redoBtn" disabled>↪ 進む</button>
+            <button class="history-btn" id="redoBtn" style="color:#ccc">↪ 進む</button>
         </div>
         <div class="divider"></div>
         <div class="color-group">
@@ -125,8 +118,8 @@
     <div id="views-container"></div>
 
     <script>
-        // --- ブラウザ間通信の初期化 ---
-        const syncChannel = new BroadcastChannel('drawing_mirror_sync');
+        // --- 超リアルタイム同期チャンネル ---
+        const sync = new BroadcastChannel('realtime_mirror_sync');
 
         let tabs = [];
         let activeTabId = null;
@@ -136,12 +129,9 @@
 
         const params = new URLSearchParams(window.location.search);
         const isPopout = params.get('mode') === 'popout';
-        
         if (isPopout) {
             document.body.classList.add('is-popout');
-            document.addEventListener('click', () => {
-                if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-            }, { once: true });
+            document.addEventListener('click', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); }, { once: true });
         }
 
         const viewsContainer = document.getElementById('views-container');
@@ -149,42 +139,48 @@
         const customPicker = document.getElementById('customPicker');
         const sizePicker = document.getElementById('sizePicker');
 
-        // --- 同期メッセージ受信（別ウィンドウ側での処理） ---
-        syncChannel.onmessage = (e) => {
+        // --- 同期受信（全ウィンドウで共通） ---
+        sync.onmessage = (e) => {
             const { type, data } = e.data;
-            if (type === 'SYNC_TAB_SWITCH') {
-                switchTab(data.tabId, false);
-            } else if (type === 'SYNC_URL') {
-                const tab = tabs.find(t => t.id === data.tabId);
-                if (tab) {
-                    tab.url = data.url;
-                    const iframe = document.querySelector(`#view-${tab.id} iframe`);
-                    if (iframe) iframe.src = data.url;
-                }
-            } else if (type === 'SYNC_CANVAS') {
-                const tab = tabs.find(t => t.id === data.tabId);
-                if (tab) {
-                    tab.history = data.history;
-                    tab.historyIndex = data.historyIndex;
-                    applyHistory(tab);
-                }
-            } else if (type === 'SYNC_MEMOS') {
-                const tab = tabs.find(t => t.id === data.tabId);
-                if (tab) {
-                    tab.memos = data.memos;
-                    refreshMemos(tab);
-                }
+            const tab = tabs.find(t => t.id === data.tabId);
+            
+            switch(type) {
+                case 'TAB_SWITCH': switchTab(data.tabId, false); break;
+                case 'URL_CHANGE': if(tab) { tab.url = data.url; document.querySelector(`#view-${tab.id} iframe`).src = data.url; } break;
+                case 'DRAW_START':
+                    if(tab) {
+                        const ctx = document.querySelector(`#view-${tab.id} canvas`).getContext('2d');
+                        ctx.beginPath();
+                        ctx.moveTo(data.x, data.y);
+                        ctx.strokeStyle = data.color;
+                        ctx.lineWidth = data.size;
+                        ctx.globalCompositeOperation = data.op;
+                    }
+                    break;
+                case 'DRAW_MOVE':
+                    if(tab) {
+                        const ctx = document.querySelector(`#view-${tab.id} canvas`).getContext('2d');
+                        ctx.lineTo(data.x, data.y);
+                        ctx.stroke();
+                    }
+                    break;
+                case 'DRAW_END': if(tab) saveState(tab, document.querySelector(`#view-${tab.id} canvas`), false); break;
+                case 'MEMO_SYNC': if(tab) { tab.memos = data.memos; refreshMemos(tab); } break;
+                case 'CLEAR': if(tab) {
+                    const canvas = document.querySelector(`#view-${tab.id} canvas`);
+                    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+                    tab.memos = []; refreshMemos(tab);
+                } break;
             }
         };
 
-        function broadcast(type, data) { syncChannel.postMessage({ type, data }); }
+        function broadcast(type, data) { sync.postMessage({ type, data }); }
 
-        // --- タブとURL管理 ---
+        // --- タブ管理 ---
         function createTab(existingData = null) {
             const id = existingData ? existingData.id : Date.now();
             const tabObj = {
                 id: id,
-                title: "タブ",
                 url: existingData ? existingData.url : "about:blank",
                 history: existingData ? existingData.history : [],
                 historyIndex: existingData ? existingData.historyIndex : -1,
@@ -218,9 +214,7 @@
             document.querySelectorAll('.tab, .tab-view').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-btn-${id}`)?.classList.add('active');
             document.getElementById(`view-${id}`)?.classList.add('active');
-            const tab = tabs.find(t => t.id === id);
-            if (tab && !isPopout) urlInput.value = tab.url === "about:blank" ? "" : tab.url;
-            if (shouldBroadcast) broadcast('SYNC_TAB_SWITCH', { tabId: id });
+            if (shouldBroadcast) broadcast('TAB_SWITCH', { tabId: id });
         }
 
         urlInput.onkeypress = (e) => {
@@ -231,13 +225,12 @@
                 if (tab) {
                     tab.url = url;
                     document.getElementById(`view-${activeTabId}`).querySelector('iframe').src = url;
-                    broadcast('SYNC_URL', { tabId: activeTabId, url: url });
-                    saveAllData();
+                    broadcast('URL_CHANGE', { tabId: activeTabId, url: url });
                 }
             }
         };
 
-        // --- 描画とミラーリング ---
+        // --- リアルタイム描画ロジック ---
         function initCanvas(canvas, tabObj) {
             const dpr = window.devicePixelRatio || 1;
             const ctx = canvas.getContext('2d');
@@ -253,48 +246,60 @@
             canvas.addEventListener('pointerdown', (e) => {
                 if(currentMode === 'nav' || isPopout) return;
                 if(currentMode === 'memo') { addMemo(e.offsetX, e.offsetY, "", tabObj); return; }
-                isDrawing = true; [lastX, lastY] = [e.offsetX, e.offsetY];
+                
+                isDrawing = true;
+                [lastX, lastY] = [e.offsetX, e.offsetY];
+                const op = (currentMode === 'eraser') ? 'destination-out' : 'source-over';
+                
+                // ローカル描画開始
+                ctx.beginPath(); ctx.moveTo(lastX, lastY);
+                ctx.strokeStyle = customPicker.value; ctx.lineWidth = sizePicker.value; ctx.globalCompositeOperation = op;
+                
+                // リアルタイム送信
+                broadcast('DRAW_START', { tabId: tabObj.id, x: lastX, y: lastY, color: ctx.strokeStyle, size: ctx.lineWidth, op: op });
             });
+
             canvas.addEventListener('pointermove', (e) => {
                 if(!isDrawing) return;
-                ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(e.offsetX, e.offsetY);
-                ctx.globalCompositeOperation = (currentMode === 'eraser') ? 'destination-out' : 'source-over';
-                ctx.strokeStyle = customPicker.value; ctx.lineWidth = sizePicker.value;
-                ctx.stroke(); [lastX, lastY] = [e.offsetX, e.offsetY];
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.stroke();
+                // リアルタイム座標送信
+                broadcast('DRAW_MOVE', { tabId: tabObj.id, x: e.offsetX, y: e.offsetY });
             });
+
             canvas.addEventListener('pointerup', () => {
-                if(isDrawing) { isDrawing = false; saveState(tabObj, canvas); }
+                if(isDrawing) {
+                    isDrawing = false;
+                    saveState(tabObj, canvas, true);
+                    broadcast('DRAW_END', { tabId: tabObj.id });
+                }
             });
         }
 
-        function saveState(tab, canvas) {
+        function saveState(tab, canvas, shouldStore) {
             const dataUrl = canvas.toDataURL();
             if(tab.historyIndex < tab.history.length - 1) tab.history = tab.history.slice(0, tab.historyIndex + 1);
             tab.history.push(dataUrl);
             if(tab.history.length > 20) tab.history.shift(); else tab.historyIndex++;
-            broadcast('SYNC_CANVAS', { tabId: tab.id, history: tab.history, historyIndex: tab.historyIndex });
-            saveAllData();
+            if(shouldStore) localStorage.setItem('drawApp_Realtime_v9', JSON.stringify(tabs));
         }
 
         function applyHistory(tab) {
             const canvas = document.querySelector(`#view-${tab.id} canvas`);
-            if(!canvas) return;
             const ctx = canvas.getContext('2d');
-            const img = new Image();
-            img.src = tab.history[tab.historyIndex];
+            const img = new Image(); img.src = tab.history[tab.historyIndex];
             img.onload = () => {
                 const dpr = window.devicePixelRatio || 1;
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0, canvas.width/dpr, canvas.height/dpr);
             };
         }
 
-        // --- メモ管理 ---
+        // --- メモ同期 ---
         function addMemo(x, y, text, tabObj) {
             tabObj.memos.push({ left: x + 'px', top: y + 'px', text: text });
             refreshMemos(tabObj);
-            broadcast('SYNC_MEMOS', { tabId: tabObj.id, memos: tabObj.memos });
+            broadcast('MEMO_SYNC', { tabId: tabObj.id, memos: tabObj.memos });
         }
 
         function refreshMemos(tab) {
@@ -304,27 +309,27 @@
                 const memoEl = document.createElement('div');
                 memoEl.className = 'memo'; memoEl.style.left = m.left; memoEl.style.top = m.top;
                 memoEl.innerHTML = `<textarea placeholder="メモ...">${m.text}</textarea>`;
-                
                 if (!isPopout) {
                     memoEl.querySelector('textarea').oninput = (e) => {
                         tab.memos[idx].text = e.target.value;
-                        saveAllData(); broadcast('SYNC_MEMOS', { tabId: tab.id, memos: tab.memos });
+                        broadcast('MEMO_SYNC', { tabId: tab.id, memos: tab.memos });
                     };
                     memoEl.onmousedown = (e) => {
                         if(e.target.tagName === 'TEXTAREA') return;
                         let ox = e.clientX - memoEl.offsetLeft, oy = e.clientY - memoEl.offsetTop;
-                        document.onmousemove = (e) => { memoEl.style.left = (e.clientX - ox) + 'px'; memoEl.style.top = (e.clientY - oy) + 'px'; };
-                        document.onmouseup = () => {
-                            document.onmousemove = null; tab.memos[idx].left = memoEl.style.left; tab.memos[idx].top = memoEl.style.top;
-                            saveAllData(); broadcast('SYNC_MEMOS', { tabId: tab.id, memos: tab.memos });
+                        document.onmousemove = (e) => {
+                            memoEl.style.left = (e.clientX - ox) + 'px'; memoEl.style.top = (e.clientY - oy) + 'px';
+                            tab.memos[idx].left = memoEl.style.left; tab.memos[idx].top = memoEl.style.top;
+                            broadcast('MEMO_SYNC', { tabId: tab.id, memos: tab.memos });
                         };
+                        document.onmouseup = () => { document.onmousemove = null; };
                     };
                 }
                 layer.appendChild(memoEl);
             });
         }
 
-        // --- その他 UI 制御 ---
+        // --- UIイベント ---
         document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => {
             currentMode = btn.id.replace('Btn', '');
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -333,34 +338,25 @@
         });
 
         document.getElementById('popoutBtn').onclick = () => {
-            saveAllData();
             const w = screen.availWidth; const h = screen.availHeight;
             window.open(`${window.location.pathname}?mode=popout&tabId=${activeTabId}`, '_blank', `width=${w},height=${h}`);
         };
 
-        document.getElementById('add-tab-btn').onclick = () => createTab();
         document.getElementById('clearBtn').onclick = () => {
             if(confirm('全消去しますか？')) {
                 const t = tabs.find(t => t.id === activeTabId);
                 const cvs = document.querySelector(`#view-${activeTabId} canvas`);
                 cvs.getContext('2d').clearRect(0,0,cvs.width,cvs.height);
                 t.memos = []; refreshMemos(t);
-                saveState(t, cvs);
-                broadcast('SYNC_MEMOS', { tabId: t.id, memos: [] });
+                broadcast('CLEAR', { tabId: activeTabId });
+                saveState(t, cvs, true);
             }
         };
 
-        function saveAllData() {
-            const data = tabs.map(tab => {
-                const view = document.getElementById(`view-${tab.id}`);
-                const memos = view ? Array.from(view.querySelectorAll('.memo')).map(m => ({ left: m.style.left, top: m.style.top, text: m.querySelector('textarea').value })) : [];
-                return { ...tab, memos };
-            });
-            localStorage.setItem('drawApp_Linked_Mirror', JSON.stringify(data));
-        }
+        document.getElementById('add-tab-btn').onclick = () => createTab();
 
         window.onload = () => {
-            const saved = localStorage.getItem('drawApp_Linked_Mirror');
+            const saved = localStorage.getItem('drawApp_Realtime_v9');
             if (saved) {
                 JSON.parse(saved).forEach(d => createTab(d));
                 const activeId = params.get('tabId') || tabs[0]?.id;
