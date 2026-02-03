@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>操作・描画ミラーリングブラウザ</title>
+    <title>操作・描画ミラーリングブラウザ - 画面明るさ修正版</title>
     <style>
         :root {
             --primary-bg: #202124;
@@ -18,13 +18,12 @@
             margin: 0; padding: 0; width: 100%; height: 100%;
             overflow: hidden; display: flex; flex-direction: column;
             font-family: -apple-system, sans-serif;
-            background-color: white;
+            background-color: white; /* 全体の背景を白に固定 */
         }
 
-        /* --- 別ウィンドウ（ポップアウト）用：操作を無効化 --- */
+        /* --- 別ウィンドウ（表示専用）設定 --- */
         body.is-popout {
-            pointer-events: none !important; /* クリック・スクロール・入力を一切禁止 */
-            cursor: default;
+            pointer-events: none !important; /* 操作を一切禁止 */
         }
         body.is-popout #tabs-bar,
         body.is-popout #standard-toolbar,
@@ -32,12 +31,11 @@
             display: none !important;
         }
 
-        /* --- 通常（本ページ）用：UIデザイン --- */
+        /* --- メイン画面（本ページ）UI --- */
         #tabs-bar { display: flex; align-items: flex-end; padding: 8px 10px 0 10px; gap: 5px; background: var(--primary-bg); overflow-x: auto; }
         .tab { display: flex; align-items: center; padding: 8px 15px; background: var(--tab-bg); color: white; border-radius: 8px 8px 0 0; cursor: pointer; min-width: 100px; font-size: 12px; position: relative; border: none; }
         .tab.active { background: white; color: black; }
         .close-btn { margin-left: 10px; font-weight: bold; color: #999; cursor: pointer; }
-        .close-btn:hover { color: #ff4d4d; }
         
         #standard-toolbar { background: white; padding: 8px 15px; display: flex; gap: 10px; border-bottom: 1px solid #eee; align-items: center; }
         #urlInput { flex-grow: 1; padding: 8px 18px; border-radius: 20px; border: 1px solid #dfe1e5; background: #f1f3f4; font-size: 14px; outline: none; }
@@ -53,17 +51,14 @@
         .circle-btn.active { border-color: #555; transform: scale(1.1); }
 
         /* コンテンツ表示エリア */
-        #views-container { flex-grow: 1; position: relative; background: #000; }
+        #views-container { flex-grow: 1; position: relative; background: #ffffff; } /* 背景を黒から白へ修正 */
         .tab-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
         .tab-view.active { display: block; }
         .tab-view iframe { width: 100%; height: 100%; border: none; background: white; }
         .tab-view canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; pointer-events: none; }
         
-        /* 操作モード（nav）のときだけ、下のiframe（Webサイト）を操作できるようにする */
+        /* 本ページ：モード切替 */
         body.mode-nav .tab-view.active iframe { pointer-events: auto; }
-        body.mode-nav .tab-view.active canvas { pointer-events: none; }
-        
-        /* 描画・消しゴムモードのときは、canvasを最前面にする */
         body.mode-draw canvas, body.mode-eraser canvas, body.mode-memo canvas { pointer-events: auto; }
         body.mode-draw canvas { cursor: crosshair; }
 
@@ -72,7 +67,7 @@
 
         #mirror-hint {
             display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); color: white; padding: 6px 18px; border-radius: 20px;
+            background: rgba(0,0,0,0.6); color: white; padding: 6px 18px; border-radius: 20px;
             font-size: 13px; z-index: 5000;
         }
         body.is-popout #mirror-hint { display: block; }
@@ -80,22 +75,19 @@
 </head>
 <body class="mode-nav">
 
-    <!-- 別ウィンドウ（表示専用）用メッセージ -->
-    <div id="mirror-hint">操作・入力はメインウィンドウで行ってください</div>
+    <!-- 別ウィンドウ用通知（明るい画面の上に見やすく表示） -->
+    <div id="mirror-hint">メインウィンドウとリアルタイム同期中</div>
 
-    <!-- 本ページ用 UI：タブ操作 -->
     <div id="tabs-bar">
         <button id="add-tab-btn" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">+</button>
     </div>
 
-    <!-- 本ページ用 UI：Web操作 -->
     <div id="standard-toolbar">
-        <input type="text" id="urlInput" placeholder="URLを入力してEnter (別ウィンドウも同じサイトへ連動します)">
-        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別ウィンドウを表示（表示専用）</div>
+        <input type="text" id="urlInput" placeholder="URLを入力してEnter (別ウィンドウへ即座に反映)">
+        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別ウィンドウを表示（ミラーリング）</div>
         <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px;">全消去</button>
     </div>
 
-    <!-- 本ページ用 UI：描画ツール -->
     <div id="draw-toolbar">
         <div class="capsule-group">
             <button class="mode-btn active" id="navBtn">操作</button>
@@ -111,14 +103,13 @@
             <input type="color" id="customPicker" value="#ff4d4d" style="width:30px; height:30px; padding:0; border:1px solid #999;">
         </div>
         <div class="divider"></div>
-        <input type="range" id="sizePicker" min="1" max="50" value="5" title="太さ">
+        <input type="range" id="sizePicker" min="1" max="50" value="5">
     </div>
 
     <div id="views-container"></div>
 
     <script>
-        // --- リアルタイム通信チャンネル ---
-        const sync = new BroadcastChannel('mirror_full_control_sync');
+        const sync = new BroadcastChannel('mirror_sync_v16');
 
         let tabs = [];
         let activeTabId = null;
@@ -130,33 +121,38 @@
         const isPopout = params.get('mode') === 'popout';
         if (isPopout) {
             document.body.classList.add('is-popout');
-            // 別窓側：クリックで一度だけ全画面化を試みる
             document.addEventListener('click', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); }, { once: true });
         }
 
         const viewsContainer = document.getElementById('views-container');
         const urlInput = document.getElementById('urlInput');
 
-        // --- 同期受信（別ウィンドウ側） ---
+        // --- 同期受信 ---
         sync.onmessage = (e) => {
-            if (!isPopout) return; // メイン側は基本送信のみ
-
             const { type, data } = e.data;
             const tab = tabs.find(t => t.id === data.tabId);
 
             switch(type) {
-                case 'INIT_DATA': // 起動時の全データ同期
-                    data.tabs.forEach(t => createTab(t, false));
-                    switchTab(data.activeId, false);
-                    data.canvasStates.forEach(c => {
-                        const cvs = document.querySelector(`#view-${c.id} canvas`);
-                        const img = new Image(); img.src = c.img;
-                        img.onload = () => cvs.getContext('2d').drawImage(img, 0, 0, cvs.width/(window.devicePixelRatio||1), cvs.height/(window.devicePixelRatio||1));
+                case 'INIT_REQ': // 別窓からのデータ要求
+                    broadcast('INIT_RES', { 
+                        tabs: tabs, activeId: activeTabId, 
+                        canvases: tabs.map(t => ({ id: t.id, img: document.querySelector(`#view-${t.id} canvas`).toDataURL() })) 
                     });
                     break;
-                case 'TAB_ADD': createTab(data.tabObj, false); break;
-                case 'TAB_CLOSE': closeTab(data.tabId, false); break;
-                case 'TAB_SWITCH': switchTab(data.tabId, false); break;
+                case 'INIT_RES': // データ受取
+                    if (isPopout && tabs.length === 0) {
+                        data.tabs.forEach(t => createTab(t, false));
+                        switchTab(data.activeId, false);
+                        data.canvases.forEach(c => {
+                            const cvs = document.querySelector(`#view-${c.id} canvas`);
+                            const img = new Image(); img.src = c.img;
+                            img.onload = () => cvs.getContext('2d').drawImage(img, 0, 0, cvs.width/(window.devicePixelRatio||1), cvs.height/(window.devicePixelRatio||1));
+                        });
+                    }
+                    break;
+                case 'TAB_ADD': if(isPopout) createTab(data.tabObj, false); break;
+                case 'TAB_CLOSE': if(isPopout) closeTab(data.tabId, false); break;
+                case 'TAB_SWITCH': if(isPopout) switchTab(data.tabId, false); break;
                 case 'URL_SYNC': if(tab) { tab.url = data.url; document.querySelector(`#view-${tab.id} iframe`).src = data.url; } break;
                 case 'DRAW_START': if(tab) {
                     const ctx = document.querySelector(`#view-${tab.id} canvas`).getContext('2d');
@@ -176,7 +172,7 @@
 
         function broadcast(type, data) { sync.postMessage({ type, data }); }
 
-        // --- タブとWeb操作 ---
+        // --- タブ管理 ---
         function createTab(existingData = null, shouldBroadcast = true) {
             const id = existingData ? existingData.id : Date.now();
             const tabObj = {
@@ -237,7 +233,7 @@
             }
         };
 
-        // --- 描画ロジック（本ページでのみ有効） ---
+        // --- 描画（本ページ用） ---
         function initCanvas(canvas, tabObj) {
             const dpr = window.devicePixelRatio || 1;
             const ctx = canvas.getContext('2d');
@@ -249,8 +245,7 @@
                 img.onload = () => ctx.drawImage(img, 0, 0, canvas.width/dpr, canvas.height/dpr);
             };
             window.addEventListener('resize', resize); setTimeout(resize, 0);
-
-            if (isPopout) return; // 別窓側は描画操作を受け付けない
+            if (isPopout) return;
 
             canvas.addEventListener('pointerdown', (e) => {
                 if(currentMode === 'nav') return;
@@ -302,7 +297,7 @@
             });
         }
 
-        // --- メイン窓 UIイベント ---
+        // --- UIイベント ---
         document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => {
             currentMode = btn.id.replace('Btn', '');
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -318,14 +313,7 @@
 
         document.getElementById('popoutBtn').onclick = () => {
             const w = screen.availWidth; const h = screen.availHeight;
-            const win = window.open(`${window.location.pathname}?mode=popout`, '_blank', `width=${w},height=${h},top=0,left=0`);
-            // 別窓が開いたら現在のデータを一括送信
-            setTimeout(() => {
-                broadcast('INIT_DATA', {
-                    tabs: tabs, activeId: activeTabId,
-                    canvasStates: tabs.map(t => ({ id: t.id, img: document.querySelector(`#view-${t.id} canvas`).toDataURL() }))
-                });
-            }, 1000);
+            window.open(`${window.location.pathname}?mode=popout`, '_blank', `width=${w},height=${h},top=0,left=0`);
         };
 
         document.getElementById('clearBtn').onclick = () => {
@@ -340,7 +328,14 @@
 
         document.getElementById('add-tab-btn').onclick = () => createTab();
 
-        window.onload = () => { if (!isPopout) createTab(null, false); };
+        window.onload = () => {
+            if (isPopout) {
+                // 別窓：メイン窓へデータ提供を依頼
+                setTimeout(() => broadcast('INIT_REQ', {}), 500);
+            } else {
+                createTab(null, false);
+            }
+        };
     </script>
 </body>
 </html>
