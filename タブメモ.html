@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>超リアルタイム連動描画ツール - 同期強化版</title>
+    <title>描画ツール - Web・操作・描画 完全連動ミラー版</title>
     <style>
         :root {
             --primary-bg: #202124;
@@ -21,7 +21,7 @@
             background-color: white;
         }
 
-        /* --- UI表示制御 --- */
+        /* --- メイン画面 UI --- */
         #tabs-bar { display: flex; align-items: flex-end; padding: 8px 10px 0 10px; gap: 5px; background: var(--primary-bg); }
         .tab { display: flex; align-items: center; padding: 8px 15px; background: var(--tab-bg); color: white; border-radius: 8px 8px 0 0; cursor: pointer; min-width: 100px; font-size: 12px; }
         .tab.active { background: white; color: black; }
@@ -29,6 +29,7 @@
         #standard-toolbar { background: white; padding: 8px 15px; display: flex; gap: 10px; border-bottom: 1px solid #eee; align-items: center; }
         #urlInput { flex-grow: 1; padding: 7px 15px; border-radius: 20px; border: 1px solid #dfe1e5; background: #f1f3f4; font-size: 13px; outline: none; }
 
+        /* 画像デザイン再現ツールバー (メイン窓のみ) */
         #draw-toolbar {
             display: flex; background: white; padding: 8px 16px; align-items: center; gap: 12px;
             border-bottom: 1px solid #eee; user-select: none; z-index: 2000;
@@ -48,7 +49,7 @@
         input[type="range"] { -webkit-appearance: none; width: 140px; height: 6px; background: #333; border-radius: 3px; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: #c1bcac; border-radius: 50%; border: 1px solid #999; cursor: pointer; }
 
-        /* 別ウィンドウ（is-popout）設定 */
+        /* 別ウィンドウ（popout）時はUIを非表示 */
         body.is-popout #tabs-bar,
         body.is-popout #standard-toolbar,
         body.is-popout #draw-toolbar {
@@ -61,6 +62,7 @@
         .tab-view iframe { width: 100%; height: 100%; border: none; background: white; }
         .tab-view canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; pointer-events: none; }
         
+        /* メイン窓の操作有効化 */
         body.mode-draw canvas, body.mode-eraser canvas, body.mode-memo canvas { pointer-events: auto; }
         body.mode-draw canvas { cursor: crosshair; }
 
@@ -78,13 +80,14 @@
 </head>
 <body class="mode-nav">
 
-    <div id="fullscreen-hint">メインウィンドウと同期中（クリックで全画面）</div>
+    <div id="fullscreen-hint">メインウィンドウと連動中（クリックで全画面）</div>
 
+    <!-- 通常画面用 UI -->
     <div id="tabs-bar"><button id="add-tab-btn" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">+</button></div>
 
     <div id="standard-toolbar">
-        <input type="text" id="urlInput" placeholder="URLを入力...">
-        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を全画面連動</div>
+        <input type="text" id="urlInput" placeholder="URLを入力すると別窓も連動してWebページを開きます">
+        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を表示（Web・描画全連動）</div>
         <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px;">全消去</button>
     </div>
 
@@ -115,7 +118,8 @@
     <div id="views-container"></div>
 
     <script>
-        const sync = new BroadcastChannel('ultra_mirror_sync_v10');
+        // --- リアルタイム同期チャンネル ---
+        const sync = new BroadcastChannel('mirror_sync_v11');
 
         let tabs = [];
         let activeTabId = null;
@@ -135,37 +139,31 @@
         const customPicker = document.getElementById('customPicker');
         const sizePicker = document.getElementById('sizePicker');
 
-        // --- 受信ロジック ---
+        // --- 同期受信（別ウィンドウ側） ---
         sync.onmessage = (e) => {
             const { type, data } = e.data;
             const tab = tabs.find(t => t.id === data.tabId);
 
             switch(type) {
-                case 'REQUEST_FULL_SYNC': // 別窓から「データちょうだい」と言われた時
-                    broadcast('RESPONSE_FULL_SYNC', { 
-                        tabs: tabs, 
-                        activeTabId: activeTabId,
-                        canvasData: tabs.map(t => ({ id: t.id, img: document.querySelector(`#view-${t.id} canvas`).toDataURL() }))
+                case 'REQUEST_INIT': // 新しい窓が開いた時に現在の状態を送信
+                    broadcast('RESPONSE_INIT', { 
+                        tabs: tabs, activeId: activeTabId, 
+                        canvases: tabs.map(t => ({ id: t.id, img: document.querySelector(`#view-${t.id} canvas`).toDataURL() })) 
                     });
                     break;
-                case 'RESPONSE_FULL_SYNC': // メイン窓からデータが届いた時
-                    if(isPopout && tabs.length === 0) { // まだ初期化されてなければ
+                case 'RESPONSE_INIT':
+                    if (isPopout && tabs.length === 0) {
                         data.tabs.forEach(t => createTab(t));
-                        switchTab(data.activeTabId, false);
-                        data.canvasData.forEach(cd => {
-                            const cvs = document.querySelector(`#view-${cd.id} canvas`);
-                            const ctx = cvs.getContext('2d');
-                            const img = new Image(); img.src = cd.img;
-                            img.onload = () => {
-                                const dpr = window.devicePixelRatio || 1;
-                                ctx.clearRect(0,0,cvs.width,cvs.height);
-                                ctx.drawImage(img, 0, 0, cvs.width/dpr, cvs.height/dpr);
-                            };
+                        switchTab(data.activeId, false);
+                        data.canvases.forEach(c => {
+                            const cvs = document.querySelector(`#view-${c.id} canvas`);
+                            const img = new Image(); img.src = c.img;
+                            img.onload = () => cvs.getContext('2d').drawImage(img, 0, 0, cvs.width/(window.devicePixelRatio||1), cvs.height/(window.devicePixelRatio||1));
                         });
                     }
                     break;
-                case 'TAB_SWITCH': switchTab(data.tabId, false); break;
-                case 'URL_CHANGE': if(tab) { tab.url = data.url; document.querySelector(`#view-${tab.id} iframe`).src = data.url; } break;
+                case 'SYNC_SWITCH': switchTab(data.tabId, false); break;
+                case 'SYNC_URL': if(tab) { tab.url = data.url; document.querySelector(`#view-${tab.id} iframe`).src = data.url; } break;
                 case 'DRAW_START':
                     if(tab) {
                         const ctx = document.querySelector(`#view-${tab.id} canvas`).getContext('2d');
@@ -174,10 +172,7 @@
                     }
                     break;
                 case 'DRAW_MOVE':
-                    if(tab) {
-                        const ctx = document.querySelector(`#view-${tab.id} canvas`).getContext('2d');
-                        ctx.lineTo(data.x, data.y); ctx.stroke();
-                    }
+                    if(tab) { const ctx = document.querySelector(`#view-${tab.id} canvas`).getContext('2d'); ctx.lineTo(data.x, data.y); ctx.stroke(); }
                     break;
                 case 'DRAW_END': if(tab) saveState(tab, document.querySelector(`#view-${tab.id} canvas`), false); break;
                 case 'MEMO_SYNC': if(tab) { tab.memos = data.memos; refreshMemos(tab); } break;
@@ -191,7 +186,7 @@
 
         function broadcast(type, data) { sync.postMessage({ type, data }); }
 
-        // --- 基本ロジック ---
+        // --- Web操作・タブ管理 ---
         function createTab(existingData = null) {
             const id = existingData ? existingData.id : Date.now();
             const tabObj = {
@@ -217,7 +212,7 @@
             viewsContainer.appendChild(viewEl);
 
             initCanvas(viewEl.querySelector('canvas'), tabObj);
-            if (existingData) { refreshMemos(tabObj); }
+            if (existingData) refreshMemos(tabObj);
             switchTab(id, false);
         }
 
@@ -226,9 +221,12 @@
             document.querySelectorAll('.tab, .tab-view').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-btn-${id}`)?.classList.add('active');
             document.getElementById(`view-${id}`)?.classList.add('active');
-            if (shouldBroadcast) broadcast('TAB_SWITCH', { tabId: id });
+            const tab = tabs.find(t => t.id === id);
+            if (tab && !isPopout) urlInput.value = tab.url === "about:blank" ? "" : tab.url;
+            if (shouldBroadcast) broadcast('SYNC_SWITCH', { tabId: id });
         }
 
+        // Webページ移動 (URL Enter)
         urlInput.onkeypress = (e) => {
             if (e.key === 'Enter') {
                 let url = urlInput.value.trim();
@@ -237,11 +235,12 @@
                 if (tab) {
                     tab.url = url;
                     document.getElementById(`view-${activeTabId}`).querySelector('iframe').src = url;
-                    broadcast('URL_CHANGE', { tabId: activeTabId, url: url });
+                    broadcast('SYNC_URL', { tabId: activeTabId, url: url });
                 }
             }
         };
 
+        // --- 描画ロジック ---
         function initCanvas(canvas, tabObj) {
             const dpr = window.devicePixelRatio || 1;
             const ctx = canvas.getContext('2d');
@@ -263,13 +262,11 @@
                 ctx.beginPath(); ctx.moveTo(lastX, lastY);
                 broadcast('DRAW_START', { tabId: tabObj.id, x: lastX, y: lastY, color: ctx.strokeStyle, size: ctx.lineWidth, op: op });
             });
-
             canvas.addEventListener('pointermove', (e) => {
                 if(!isDrawing) return;
                 ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke();
                 broadcast('DRAW_MOVE', { tabId: tabObj.id, x: e.offsetX, y: e.offsetY });
             });
-
             canvas.addEventListener('pointerup', () => {
                 if(isDrawing) { isDrawing = false; saveState(tabObj, canvas, true); broadcast('DRAW_END', { tabId: tabObj.id }); }
             });
@@ -280,15 +277,14 @@
             if(tab.historyIndex < tab.history.length - 1) tab.history = tab.history.slice(0, tab.historyIndex + 1);
             tab.history.push(dataUrl);
             if(tab.history.length > 20) tab.history.shift(); else tab.historyIndex++;
-            if(shouldStore) localStorage.setItem('drawApp_Linked_Mirror_v10', JSON.stringify(tabs));
+            if(shouldStore) localStorage.setItem('drawApp_Linked_Mirror_v11', JSON.stringify(tabs));
         }
 
+        // --- メモ連動 ---
         function addMemo(x, y, text, tabObj) {
             tabObj.memos.push({ left: x + 'px', top: y + 'px', text: text });
-            refreshMemos(tabObj);
-            broadcast('MEMO_SYNC', { tabId: tabObj.id, memos: tabObj.memos });
+            refreshMemos(tabObj); broadcast('MEMO_SYNC', { tabId: tabObj.id, memos: tabObj.memos });
         }
-
         function refreshMemos(tab) {
             const layer = document.querySelector(`#view-${tab.id} .memo-layer`);
             if(!layer) return; layer.innerHTML = '';
@@ -309,13 +305,14 @@
                             tab.memos[idx].left = memoEl.style.left; tab.memos[idx].top = memoEl.style.top;
                             broadcast('MEMO_SYNC', { tabId: tab.id, memos: tab.memos });
                         };
-                        document.onmouseup = () => { document.onmousemove = null; };
+                        document.onmouseup = () => document.onmousemove = null;
                     };
                 }
                 layer.appendChild(memoEl);
             });
         }
 
+        // --- ボタン制御 ---
         document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => {
             currentMode = btn.id.replace('Btn', '');
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -325,31 +322,30 @@
 
         document.getElementById('popoutBtn').onclick = () => {
             const w = screen.availWidth; const h = screen.availHeight;
-            window.open(`${window.location.pathname}?mode=popout&tabId=${activeTabId}`, '_blank', `width=${w},height=${h}`);
+            window.open(`${window.location.pathname}?mode=popout&tabId=${activeTabId}`, '_blank', `width=${w},height=${h},top=0,left=0`);
         };
 
         document.getElementById('clearBtn').onclick = () => {
-            if(confirm('全消去しますか？')) {
+            if(confirm('全ての描画とメモを消去しますか？')) {
                 const t = tabs.find(t => t.id === activeTabId);
                 const cvs = document.querySelector(`#view-${activeTabId} canvas`);
                 cvs.getContext('2d').clearRect(0,0,cvs.width,cvs.height);
                 t.memos = []; refreshMemos(t);
-                broadcast('CLEAR', { tabId: activeTabId });
-                saveState(t, cvs, true);
+                broadcast('CLEAR', { tabId: activeTabId }); saveState(t, cvs, true);
             }
         };
 
         document.getElementById('add-tab-btn').onclick = () => createTab();
 
+        // 起動時
         window.onload = () => {
             if (isPopout) {
-                // 別窓の場合、メイン窓へデータ提供を依頼する
-                setTimeout(() => broadcast('REQUEST_FULL_SYNC', {}), 500);
+                setTimeout(() => broadcast('REQUEST_INIT', {}), 500);
             } else {
-                const saved = localStorage.getItem('drawApp_Linked_Mirror_v10');
+                const saved = localStorage.getItem('drawApp_Linked_Mirror_v11');
                 if (saved) {
                     JSON.parse(saved).forEach(d => createTab(d));
-                    const activeId = localStorage.getItem('drawAppActive_v10') || tabs[0]?.id;
+                    const activeId = localStorage.getItem('drawAppActive_v11') || tabs[0]?.id;
                     if (activeId) switchTab(Number(activeId), false);
                 } else { createTab(); }
             }
