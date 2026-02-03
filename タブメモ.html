@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高機能描画ツール - 超リアルタイム連動版</title>
+    <title>超リアルタイム連動描画ツール</title>
     <style>
         :root {
             --primary-bg: #202124;
@@ -21,7 +21,7 @@
             background-color: white;
         }
 
-        /* --- UI表示制御 --- */
+        /* --- UI表示制御 (メイン窓用) --- */
         #tabs-bar { display: flex; align-items: flex-end; padding: 8px 10px 0 10px; gap: 5px; background: var(--primary-bg); }
         .tab { display: flex; align-items: center; padding: 8px 15px; background: var(--tab-bg); color: white; border-radius: 8px 8px 0 0; cursor: pointer; min-width: 100px; font-size: 12px; }
         .tab.active { background: white; color: black; }
@@ -49,7 +49,7 @@
         input[type="range"] { -webkit-appearance: none; width: 140px; height: 6px; background: #333; border-radius: 3px; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: #c1bcac; border-radius: 50%; border: 1px solid #999; cursor: pointer; }
 
-        /* 別ウィンドウ（is-popout）時は操作系を完全に隠す */
+        /* 別ウィンドウ（is-popout）時は全ての操作系を隠す */
         body.is-popout #tabs-bar,
         body.is-popout #standard-toolbar,
         body.is-popout #draw-toolbar {
@@ -63,6 +63,7 @@
         .tab-view iframe { width: 100%; height: 100%; border: none; background: white; }
         .tab-view canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; pointer-events: none; }
         
+        /* 操作用（メイン窓のみ有効） */
         body.mode-draw canvas, body.mode-eraser canvas, body.mode-memo canvas { pointer-events: auto; }
         body.mode-draw canvas { cursor: crosshair; }
 
@@ -80,13 +81,14 @@
 </head>
 <body class="mode-nav">
 
-    <div id="fullscreen-hint">メインウィンドウとリアルタイム連動中（クリックで全画面）</div>
+    <div id="fullscreen-hint">メインウィンドウと同期中（クリックで全画面）</div>
 
+    <!-- メイン窓用 UI -->
     <div id="tabs-bar"><button id="add-tab-btn" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">+</button></div>
 
     <div id="standard-toolbar">
-        <input type="text" id="urlInput" placeholder="URLを入力すると別窓も瞬時に切り替わります">
-        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を表示（リアルタイム同期）</div>
+        <input type="text" id="urlInput" placeholder="URLを入力すると別窓も瞬時に動きます">
+        <div id="popoutBtn" style="color:var(--accent-blue); cursor:pointer; font-size:12px; text-decoration:underline; white-space:nowrap;">🗔 別窓を全画面連動</div>
         <button id="clearBtn" style="border:none; color:red; background:none; cursor:pointer; margin-left:10px;">全消去</button>
     </div>
 
@@ -118,8 +120,8 @@
     <div id="views-container"></div>
 
     <script>
-        // --- 超リアルタイム同期チャンネル ---
-        const sync = new BroadcastChannel('realtime_mirror_sync');
+        // --- 通信チャンネル (全ウィンドウで共有) ---
+        const syncChannel = new BroadcastChannel('ultra_mirror_sync');
 
         let tabs = [];
         let activeTabId = null;
@@ -139,29 +141,25 @@
         const customPicker = document.getElementById('customPicker');
         const sizePicker = document.getElementById('sizePicker');
 
-        // --- 同期受信（全ウィンドウで共通） ---
-        sync.onmessage = (e) => {
+        // --- 同期メッセージの処理 (別窓側が主に受信) ---
+        syncChannel.onmessage = (e) => {
             const { type, data } = e.data;
             const tab = tabs.find(t => t.id === data.tabId);
-            
+
             switch(type) {
                 case 'TAB_SWITCH': switchTab(data.tabId, false); break;
-                case 'URL_CHANGE': if(tab) { tab.url = data.url; document.querySelector(`#view-${tab.id} iframe`).src = data.url; } break;
+                case 'URL_SYNC': if(tab) { tab.url = data.url; document.querySelector(`#view-${tab.id} iframe`).src = data.url; } break;
                 case 'DRAW_START':
                     if(tab) {
                         const ctx = document.querySelector(`#view-${tab.id} canvas`).getContext('2d');
-                        ctx.beginPath();
-                        ctx.moveTo(data.x, data.y);
-                        ctx.strokeStyle = data.color;
-                        ctx.lineWidth = data.size;
-                        ctx.globalCompositeOperation = data.op;
+                        ctx.globalCompositeOperation = data.op; ctx.strokeStyle = data.color; ctx.lineWidth = data.size;
+                        ctx.beginPath(); ctx.moveTo(data.x, data.y);
                     }
                     break;
                 case 'DRAW_MOVE':
                     if(tab) {
                         const ctx = document.querySelector(`#view-${tab.id} canvas`).getContext('2d');
-                        ctx.lineTo(data.x, data.y);
-                        ctx.stroke();
+                        ctx.lineTo(data.x, data.y); ctx.stroke();
                     }
                     break;
                 case 'DRAW_END': if(tab) saveState(tab, document.querySelector(`#view-${tab.id} canvas`), false); break;
@@ -174,9 +172,9 @@
             }
         };
 
-        function broadcast(type, data) { sync.postMessage({ type, data }); }
+        function broadcast(type, data) { syncChannel.postMessage({ type, data }); }
 
-        // --- タブ管理 ---
+        // --- 基本ロジック ---
         function createTab(existingData = null) {
             const id = existingData ? existingData.id : Date.now();
             const tabObj = {
@@ -219,18 +217,16 @@
 
         urlInput.onkeypress = (e) => {
             if (e.key === 'Enter') {
-                let url = urlInput.value.trim();
-                if (!url.startsWith('http')) url = 'https://' + url;
+                let url = urlInput.value.trim(); if (!url.startsWith('http')) url = 'https://' + url;
                 const tab = tabs.find(t => t.id === activeTabId);
                 if (tab) {
-                    tab.url = url;
-                    document.getElementById(`view-${activeTabId}`).querySelector('iframe').src = url;
-                    broadcast('URL_CHANGE', { tabId: activeTabId, url: url });
+                    tab.url = url; document.getElementById(`view-${activeTabId}`).querySelector('iframe').src = url;
+                    broadcast('URL_SYNC', { tabId: activeTabId, url: url });
                 }
             }
         };
 
-        // --- リアルタイム描画ロジック ---
+        // --- リアルタイム描画同期 ---
         function initCanvas(canvas, tabObj) {
             const dpr = window.devicePixelRatio || 1;
             const ctx = canvas.getContext('2d');
@@ -247,30 +243,27 @@
                 if(currentMode === 'nav' || isPopout) return;
                 if(currentMode === 'memo') { addMemo(e.offsetX, e.offsetY, "", tabObj); return; }
                 
-                isDrawing = true;
-                [lastX, lastY] = [e.offsetX, e.offsetY];
+                isDrawing = true; [lastX, lastY] = [e.offsetX, e.offsetY];
                 const op = (currentMode === 'eraser') ? 'destination-out' : 'source-over';
                 
-                // ローカル描画開始
+                // 本ページ側の描画開始
+                ctx.globalCompositeOperation = op; ctx.strokeStyle = customPicker.value; ctx.lineWidth = sizePicker.value;
                 ctx.beginPath(); ctx.moveTo(lastX, lastY);
-                ctx.strokeStyle = customPicker.value; ctx.lineWidth = sizePicker.value; ctx.globalCompositeOperation = op;
                 
-                // リアルタイム送信
+                // 別窓への開始通知
                 broadcast('DRAW_START', { tabId: tabObj.id, x: lastX, y: lastY, color: ctx.strokeStyle, size: ctx.lineWidth, op: op });
             });
 
             canvas.addEventListener('pointermove', (e) => {
                 if(!isDrawing) return;
-                ctx.lineTo(e.offsetX, e.offsetY);
-                ctx.stroke();
-                // リアルタイム座標送信
+                ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke();
+                // 動かすたびに座標を送信 (リアルタイム)
                 broadcast('DRAW_MOVE', { tabId: tabObj.id, x: e.offsetX, y: e.offsetY });
             });
 
             canvas.addEventListener('pointerup', () => {
                 if(isDrawing) {
-                    isDrawing = false;
-                    saveState(tabObj, canvas, true);
+                    isDrawing = false; saveState(tabObj, canvas, true);
                     broadcast('DRAW_END', { tabId: tabObj.id });
                 }
             });
@@ -279,9 +272,8 @@
         function saveState(tab, canvas, shouldStore) {
             const dataUrl = canvas.toDataURL();
             if(tab.historyIndex < tab.history.length - 1) tab.history = tab.history.slice(0, tab.historyIndex + 1);
-            tab.history.push(dataUrl);
-            if(tab.history.length > 20) tab.history.shift(); else tab.historyIndex++;
-            if(shouldStore) localStorage.setItem('drawApp_Realtime_v9', JSON.stringify(tabs));
+            tab.history.push(dataUrl); if(tab.history.length > 20) tab.history.shift(); else tab.historyIndex++;
+            if(shouldStore) localStorage.setItem('drawApp_SyncData_Final', JSON.stringify(tabs));
         }
 
         function applyHistory(tab) {
@@ -295,11 +287,10 @@
             };
         }
 
-        // --- メモ同期 ---
+        // --- メモ連動 ---
         function addMemo(x, y, text, tabObj) {
             tabObj.memos.push({ left: x + 'px', top: y + 'px', text: text });
-            refreshMemos(tabObj);
-            broadcast('MEMO_SYNC', { tabId: tabObj.id, memos: tabObj.memos });
+            refreshMemos(tabObj); broadcast('MEMO_SYNC', { tabId: tabObj.id, memos: tabObj.memos });
         }
 
         function refreshMemos(tab) {
@@ -322,14 +313,14 @@
                             tab.memos[idx].left = memoEl.style.left; tab.memos[idx].top = memoEl.style.top;
                             broadcast('MEMO_SYNC', { tabId: tab.id, memos: tab.memos });
                         };
-                        document.onmouseup = () => { document.onmousemove = null; };
+                        document.onmouseup = () => document.onmousemove = null;
                     };
                 }
                 layer.appendChild(memoEl);
             });
         }
 
-        // --- UIイベント ---
+        // --- ボタン制御 ---
         document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => {
             currentMode = btn.id.replace('Btn', '');
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -343,20 +334,19 @@
         };
 
         document.getElementById('clearBtn').onclick = () => {
-            if(confirm('全消去しますか？')) {
+            if(confirm('全ての描画とメモを消去しますか？')) {
                 const t = tabs.find(t => t.id === activeTabId);
                 const cvs = document.querySelector(`#view-${activeTabId} canvas`);
                 cvs.getContext('2d').clearRect(0,0,cvs.width,cvs.height);
                 t.memos = []; refreshMemos(t);
-                broadcast('CLEAR', { tabId: activeTabId });
-                saveState(t, cvs, true);
+                broadcast('CLEAR', { tabId: activeTabId }); saveState(t, cvs, true);
             }
         };
 
         document.getElementById('add-tab-btn').onclick = () => createTab();
 
         window.onload = () => {
-            const saved = localStorage.getItem('drawApp_Realtime_v9');
+            const saved = localStorage.getItem('drawApp_SyncData_Final');
             if (saved) {
                 JSON.parse(saved).forEach(d => createTab(d));
                 const activeId = params.get('tabId') || tabs[0]?.id;
